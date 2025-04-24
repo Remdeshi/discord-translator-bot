@@ -48,7 +48,7 @@ async def on_ready():
 
 @client.event
 async def on_message(message):
-    if message.author.bot:
+    if message.author == client.user or message.author.bot:  # ✅ Botの発言は無視
         return
 
     content = message.content.strip()
