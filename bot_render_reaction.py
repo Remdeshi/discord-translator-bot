@@ -72,7 +72,7 @@ async def on_raw_reaction_add(payload):
 
         # 翻訳処理
         translated = translate(message.content, flag_map[emoji])
-        reply = await channel.send(f"<@{payload.user_id}> {emoji} 翻訳: {translated}")
+        reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
         
         # リアクション削除
         await message.remove_reaction(emoji, user)
