@@ -23,16 +23,13 @@ def index():
 def run_flask():
     app.run(host="0.0.0.0", port=8080)
 
-# Start Flask in a background thread
 Thread(target=run_flask, daemon=True).start()
 
-# Discord client setup
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 client = discord.Client(intents=intents)
 
-# Country flag to DeepL language code mapping
 flag_map = {
     "🇯🇵": "JA",
     "🇺🇸": "EN",
@@ -42,7 +39,6 @@ flag_map = {
     "🇨🇳": "ZH",
 }
 
-# Translate function using DeepL API
 def translate(text, target_lang):
     response = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
@@ -60,7 +56,7 @@ async def on_ready():
 @client.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == client.user.id:
-        return  # Ignore bot's own reactions
+        return
 
     emoji = str(payload.emoji)
     if emoji not in flag_map:
@@ -73,13 +69,18 @@ async def on_raw_reaction_add(payload):
     try:
         message = await channel.fetch_message(payload.message_id)
         user = await client.fetch_user(payload.user_id)
+
+        # 翻訳処理
         translated = translate(message.content, flag_map[emoji])
         reply = await channel.send(f"<@{payload.user_id}> {emoji} 翻訳: {translated}")
+        
+        # リアクション削除
+        await message.remove_reaction(emoji, user)
+
+        # 30秒後に翻訳メッセージを削除
         await asyncio.sleep(30)
         await reply.delete()
     except Exception as e:
         print(f"エラー: {e}")
 
-# Run the Discord bot
 client.run(DISCORD_TOKEN)
-
