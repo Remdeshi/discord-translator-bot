@@ -61,8 +61,8 @@ async def on_message(message):
         current_lang = TARGET_LANG
         target_lang = SOURCE_LANG
 
-    translated = translate(content, current_lang, target_lang)
-    await message.channel.send(f" {translated}")
+   translated = translate(content, current_lang, target_lang)
+await message.channel.send(translated)
 
     # 文字数カウント
     count_data = load_char_count()
