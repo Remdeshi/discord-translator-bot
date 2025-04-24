@@ -53,21 +53,20 @@ async def on_message(message):
     content = message.content.strip()
     current_lang = None
 
-    # 自動判定：メッセージが日本語なら英語へ、それ以外は日本語へ翻訳
-    if any(c in content for c in "ぁあぃいぅうえおかがきぎくぐけげこごさしすせそたちつてとなにぬねのまみむめもやゆよらりるれろわをん漢字"):
-        current_lang = SOURCE_LANG
-        target_lang = TARGET_LANG
-    else:
-        current_lang = TARGET_LANG
-        target_lang = SOURCE_LANG
+# 自動判定：メッセージが日本語なら英語へ、それ以外は日本語へ翻訳
+if any(c in content for c in "ぁあぃいぅうえおかがきぎくぐけげこごさしすせそたちつてとなにぬねのまみむめもやゆよらりるれろわをん漢字"):
+    current_lang = SOURCE_LANG
+    target_lang = TARGET_LANG
+else:
+    current_lang = TARGET_LANG
+    target_lang = SOURCE_LANG
 
-      translated = translate(content, current_lang, target_lang)
-    await message.channel.send(translated)
+translated = translate(content, current_lang, target_lang)
+await message.channel.send(translated)
 
-
-    # 文字数カウント
-    count_data = load_char_count()
-    count_data["count"] += len(content)
-    save_char_count(count_data["count"])
+# 文字数カウント
+count_data = load_char_count()
+count_data["count"] += len(content)
+save_char_count(count_data["count"])
 
 client.run(DISCORD_TOKEN)
