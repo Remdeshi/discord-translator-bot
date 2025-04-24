@@ -7,13 +7,11 @@ from flask import Flask
 from threading import Thread
 from dotenv import load_dotenv
 
-# Load environment variables
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 
-# Flask app for uptime monitoring
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "HEAD"])
@@ -30,13 +28,14 @@ intents.message_content = True
 intents.reactions = True
 client = discord.Client(intents=intents)
 
+# 拡張された国旗対応表
 flag_map = {
-    "🇯🇵": "JA",
-    "🇺🇸": "EN",
-    "🇫🇷": "FR",
-    "🇩🇪": "DE",
-    "🇰🇷": "KO",
-    "🇨🇳": "ZH",
+    "🇯🇵": "JA", "🇺🇸": "EN", "🇬🇧": "EN", "🇨🇦": "EN", "🇦🇺": "EN",
+    "🇫🇷": "FR", "🇩🇪": "DE", "🇪🇸": "ES", "🇮🇹": "IT", "🇳🇱": "NL",
+    "🇵🇹": "PT", "🇷🇺": "RU", "🇰🇷": "KO", "🇨🇳": "ZH", "🇹🇼": "ZH",
+    "🇸🇪": "SV", "🇳🇴": "NB", "🇩🇰": "DA", "🇫🇮": "FI", "🇹🇭": "TH",
+    "🇮🇩": "ID", "🇵🇱": "PL", "🇨🇿": "CS", "🇷🇴": "RO", "🇹🇷": "TR",
+    "🇺🇦": "UK", "🇭🇺": "HU", "🇧🇬": "BG"
 }
 
 def translate(text, target_lang):
@@ -69,15 +68,9 @@ async def on_raw_reaction_add(payload):
     try:
         message = await channel.fetch_message(payload.message_id)
         user = await client.fetch_user(payload.user_id)
-
-        # 翻訳処理
         translated = translate(message.content, flag_map[emoji])
-        reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
-        
-        # リアクション削除
+        reply = await channel.send(f"<@{payload.user_id}> {emoji} 翻訳: {translated}")
         await message.remove_reaction(emoji, user)
-
-        # 30秒後に翻訳メッセージを削除
         await asyncio.sleep(30)
         await reply.delete()
     except Exception as e:
