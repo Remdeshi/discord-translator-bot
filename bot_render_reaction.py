@@ -45,7 +45,6 @@ def get_last_ping():
             return {"last_ping": f.read().strip()}, 200
     return {"last_ping": "まだ受信なし"}, 200
 
-# Flaskバックグラウンド起動
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
 
 # ==== 翻訳文字数記録 ====
@@ -64,7 +63,7 @@ def update_char_count(add_count: int):
     with open(CHAR_COUNT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ==== DeepL翻訳関数 ====
+# ==== DeepL翻訳 ====
 def translate(text, target_lang):
     response = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
@@ -72,7 +71,7 @@ def translate(text, target_lang):
         "target_lang": target_lang
     })
     if response.status_code == 200:
-        update_char_count(len(text))  # 翻訳した文字数を加算
+        update_char_count(len(text))
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
@@ -89,9 +88,17 @@ def save_lang_settings(data):
     with open(LANG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+# ==== 国旗 → 言語コードマップ ====
+flag_map = {
+    "🇯🇵": "JA", "🇺🇸": "EN", "🇬🇧": "EN", "🇨🇦": "EN", "🇦🇺": "EN",
+    "🇫🇷": "FR", "🇩🇪": "DE", "🇪🇸": "ES", "🇮🇹": "IT", "🇳🇱": "NL",
+    "🇷🇺": "RU", "🇰🇷": "KO", "🇨🇳": "ZH", "🇹🇼": "ZH"
+}
+
 # ==== Bot設定 ====
 intents = discord.Intents.default()
 intents.message_content = True
+intents.reactions = True  # ← リアクション受信を有効に！
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==== スラッシュコマンド：母国語設定 ====
@@ -135,6 +142,31 @@ async def on_message(message):
 
     translated = translate(message.content, target_lang)
     await message.channel.send(translated)
+
+# ==== サーバー上でのリアクション翻訳 ====
+@bot.event
+async def on_raw_reaction_add(payload):
+    if payload.user_id == bot.user.id:
+        return
+
+    emoji = str(payload.emoji)
+    if emoji not in flag_map:
+        return
+
+    channel = bot.get_channel(payload.channel_id)
+    if not channel:
+        return
+
+    try:
+        message = await channel.fetch_message(payload.message_id)
+        user = await bot.fetch_user(payload.user_id)
+        translated = translate(message.content, flag_map[emoji])
+        reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
+        await message.remove_reaction(emoji, user)
+        await discord.utils.sleep_until(datetime.utcnow() + discord.utils.timedelta(seconds=30))
+        await reply.delete()
+    except Exception as e:
+        print(f"リアクション翻訳エラー: {e}")
 
 # ==== Bot起動 ====
 bot.run(DISCORD_TOKEN)
