@@ -18,18 +18,30 @@ DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 # ==== Flask ====
 app = Flask(__name__)
 CHAR_COUNT_FILE = "char_count.json"
-LAST_PING_FILE = "/tmp/last_ping.txt"  # ← Renderでも書き込み可能なパス
+LAST_PING_FILE = "/tmp/last_ping.txt"   # Renderで確実に書ける場所
 PING_LOG_FILE = "/tmp/ping_log.txt"
 
 @app.route("/", methods=["GET", "HEAD"])
 def ping():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    if request.method == "HEAD":
+        print(f"📡 HEADリクエスト受信（更新スキップ）: {now}")
+        return "", 200
+
     with open(LAST_PING_FILE, "w") as f:
         f.write(now)
     with open(PING_LOG_FILE, "a", encoding="utf-8") as f:
         f.write(f"[{now}] UptimeRobot : 正常\n")
-    print(f"📡 Ping 受信: {now}")
+    print(f"📡 GETリクエストでPing更新: {now}")
     return "OK", 200
+
+@app.route("/last_ping", methods=["GET"])
+def get_last_ping():
+    if os.path.exists(LAST_PING_FILE):
+        with open(LAST_PING_FILE, "r") as f:
+            return {"last_ping": f.read().strip()}, 200
+    return {"last_ping": "まだ受信なし"}, 200
 
 @app.route("/char_count", methods=["GET"])
 def get_char_count():
@@ -39,16 +51,9 @@ def get_char_count():
         return data, 200
     return {"count": 0, "month": "unknown"}, 200
 
-@app.route("/last_ping", methods=["GET"])
-def get_last_ping():
-    if os.path.exists(LAST_PING_FILE):
-        with open(LAST_PING_FILE, "r") as f:
-            return {"last_ping": f.read().strip()}, 200
-    return {"last_ping": "まだ受信なし"}, 200
-
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
 
-# ==== 翻訳文字数記録 ====
+# ==== 翻訳文字数管理 ====
 def update_char_count(add_count: int):
     current_month = datetime.now().strftime("%Y-%m")
     if os.path.exists(CHAR_COUNT_FILE):
@@ -56,10 +61,8 @@ def update_char_count(add_count: int):
             data = json.load(f)
     else:
         data = {"count": 0, "month": current_month}
-
     if data.get("month") != current_month:
         data = {"count": 0, "month": current_month}
-
     data["count"] += add_count
     with open(CHAR_COUNT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -76,9 +79,8 @@ def translate(text, target_lang):
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
-# ==== 言語設定 ====
+# ==== 言語設定ファイル ====
 LANG_FILE = "user_lang.json"
-
 def load_lang_settings():
     if not os.path.exists(LANG_FILE):
         return {}
@@ -89,20 +91,18 @@ def save_lang_settings(data):
     with open(LANG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ==== 国旗 → 言語コードマップ ====
+# ==== Discord Bot ====
 flag_map = {
     "🇯🇵": "JA", "🇺🇸": "EN", "🇬🇧": "EN", "🇨🇦": "EN", "🇦🇺": "EN",
     "🇫🇷": "FR", "🇩🇪": "DE", "🇪🇸": "ES", "🇮🇹": "IT", "🇳🇱": "NL",
     "🇷🇺": "RU", "🇰🇷": "KO", "🇨🇳": "ZH", "🇹🇼": "ZH"
 }
 
-# ==== Bot設定 ====
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# ==== スラッシュコマンド：母国語設定 ====
 LANG_CHOICES = [
     app_commands.Choice(name="Japanese", value="JA"),
     app_commands.Choice(name="English", value="EN"),
@@ -124,13 +124,11 @@ async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[st
     save_lang_settings(data)
     await interaction.response.send_message(f"✅ あなたの母国語を `{lang.name}` に設定しました！", ephemeral=True)
 
-# ==== Botログイン時 ====
 @bot.event
 async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== DMで相互翻訳 ====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -156,7 +154,6 @@ async def on_message(message):
     translated = translate(text, target_lang)
     await message.channel.send(translated)
 
-# ==== サーバーでのリアクション翻訳 ====
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
@@ -181,5 +178,4 @@ async def on_raw_reaction_add(payload):
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
-# ==== Bot起動 ====
 bot.run(DISCORD_TOKEN)
