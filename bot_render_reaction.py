@@ -1,4 +1,3 @@
-
 import os
 import discord
 import requests
@@ -7,11 +6,13 @@ from flask import Flask
 from threading import Thread
 from dotenv import load_dotenv
 
+# ==== 環境変数読み込み ====
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 
+# ==== Flask（Render用） ====
 app = Flask(__name__)
 
 @app.route("/", methods=["GET", "HEAD"])
@@ -23,12 +24,13 @@ def run_flask():
 
 Thread(target=run_flask, daemon=True).start()
 
+# ==== Discord初期化 ====
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 client = discord.Client(intents=intents)
 
-# 拡張された国旗対応表
+# ==== 国旗 → 言語コード マッピング ====
 flag_map = {
     "🇯🇵": "JA", "🇺🇸": "EN", "🇬🇧": "EN", "🇨🇦": "EN", "🇦🇺": "EN",
     "🇫🇷": "FR", "🇩🇪": "DE", "🇪🇸": "ES", "🇮🇹": "IT", "🇳🇱": "NL",
@@ -38,6 +40,7 @@ flag_map = {
     "🇺🇦": "UK", "🇭🇺": "HU", "🇧🇬": "BG"
 }
 
+# ==== 翻訳処理 ====
 def translate(text, target_lang):
     response = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
@@ -48,10 +51,22 @@ def translate(text, target_lang):
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
+# ==== Bot起動確認 ====
 @client.event
 async def on_ready():
     print(f"✅ Logged in as {client.user}")
 
+# ==== DMで即翻訳 ====
+@client.event
+async def on_message(message):
+    if message.author.bot:
+        return
+
+    if isinstance(message.channel, discord.DMChannel):
+        translated = translate(message.content, "EN")  # 必要なら言語判定や設定追加OK
+        await message.channel.send(f"{translated}")
+
+# ==== サーバーで国旗リアクション翻訳 ====
 @client.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == client.user.id:
@@ -76,4 +91,5 @@ async def on_raw_reaction_add(payload):
     except Exception as e:
         print(f"エラー: {e}")
 
+# ==== Bot起動 ====
 client.run(DISCORD_TOKEN)
