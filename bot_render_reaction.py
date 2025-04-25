@@ -98,7 +98,7 @@ flag_map = {
 # ==== Bot設定 ====
 intents = discord.Intents.default()
 intents.message_content = True
-intents.reactions = True  # ← リアクション受信を有効に！
+intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
 # ==== スラッシュコマンド：母国語設定 ====
@@ -129,7 +129,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== DMで翻訳 ====
+# ==== DMで相互翻訳（自動言語判定）====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -138,12 +138,25 @@ async def on_message(message):
     user_id = str(message.author.id)
     lang_data = load_lang_settings()
     native_lang = lang_data.get(user_id, "JA")
-    target_lang = "EN" if native_lang == "JA" else "JA"
+    other_lang = "EN" if native_lang != "EN" else "JA"
+    text = message.content
 
-    translated = translate(message.content, target_lang)
+    # DeepLで言語自動判定（翻訳 + detected_source_language）
+    detect_res = requests.post(DEEPL_API_URL, data={
+        "auth_key": DEEPL_API_KEY,
+        "text": text
+    })
+    if detect_res.status_code != 200:
+        await message.channel.send("[翻訳エラー]")
+        return
+
+    detected_lang = detect_res.json()["translations"][0]["detected_source_language"]
+    target_lang = other_lang if detected_lang == native_lang else native_lang
+
+    translated = translate(text, target_lang)
     await message.channel.send(translated)
 
-# ==== サーバー上でのリアクション翻訳 ====
+# ==== サーバーでのリアクション翻訳 ====
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
