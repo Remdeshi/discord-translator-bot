@@ -2,6 +2,7 @@ import os
 import json
 import discord
 import requests
+import asyncio
 from flask import Flask, request
 from threading import Thread
 from datetime import datetime
@@ -49,7 +50,6 @@ def get_char_count():
         return data, 200
     return {"count": 0, "month": "unknown"}, 200
 
-# ✅ 追加：pingログ取得エンドポイント
 @app.route("/ping_log", methods=["GET"])
 def get_ping_log():
     if os.path.exists(PING_LOG_FILE):
@@ -59,7 +59,6 @@ def get_ping_log():
         return {"log": "".join(last_10)}, 200
     return {"log": "ログが存在しません"}, 200
 
-# Flaskバックグラウンド起動
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
 
 # ==== 翻訳文字数管理 ====
@@ -137,7 +136,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== DMで相互翻訳（修正済み）====
+# ==== DMで相互翻訳 ====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -149,7 +148,6 @@ async def on_message(message):
     other_lang = "EN" if native_lang != "EN" else "JA"
     text = message.content
 
-    # 💡 DeepLがtarget_langなしだとエラーになる対策
     detect_res = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
         "text": text,
@@ -165,7 +163,7 @@ async def on_message(message):
     translated = translate(text, target_lang)
     await message.channel.send(translated)
 
-# ==== リアクション翻訳 ====
+# ==== リアクション翻訳（修正済み） ====
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
@@ -185,8 +183,10 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
         reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
         await message.remove_reaction(emoji, user)
-        await discord.utils.sleep_until(datetime.utcnow() + discord.utils.timedelta(seconds=30))
+
+        await asyncio.sleep(30)
         await reply.delete()
+
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
