@@ -18,17 +18,15 @@ DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 # ==== Flask ====
 app = Flask(__name__)
 CHAR_COUNT_FILE = "char_count.json"
-LAST_PING_FILE = "/tmp/last_ping.txt"   # Renderで確実に書ける場所
+LAST_PING_FILE = "/tmp/last_ping.txt"
 PING_LOG_FILE = "/tmp/ping_log.txt"
 
 @app.route("/", methods=["GET", "HEAD"])
 def ping():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    
     if request.method == "HEAD":
         print(f"📡 HEADリクエスト受信（更新スキップ）: {now}")
         return "", 200
-
     with open(LAST_PING_FILE, "w") as f:
         f.write(now)
     with open(PING_LOG_FILE, "a", encoding="utf-8") as f:
@@ -79,14 +77,13 @@ def translate(text, target_lang):
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
-# ==== 言語設定ファイル ====
+# ==== 言語設定 ====
 LANG_FILE = "user_lang.json"
 def load_lang_settings():
     if not os.path.exists(LANG_FILE):
         return {}
     with open(LANG_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
-
 def save_lang_settings(data):
     with open(LANG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
@@ -129,6 +126,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
+# ==== DMで相互翻訳（修正済み）====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -140,9 +138,11 @@ async def on_message(message):
     other_lang = "EN" if native_lang != "EN" else "JA"
     text = message.content
 
+    # 💡 修正済み：DeepLがtarget_langなしだとエラーになる対策！
     detect_res = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
-        "text": text
+        "text": text,
+        "target_lang": "EN"
     })
     if detect_res.status_code != 200:
         await message.channel.send("[翻訳エラー]")
