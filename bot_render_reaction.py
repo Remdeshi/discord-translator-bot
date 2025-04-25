@@ -18,16 +18,17 @@ DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 # ==== Flask ====
 app = Flask(__name__)
 CHAR_COUNT_FILE = "char_count.json"
-LAST_PING_FILE = "last_ping.txt"
-PING_LOG_FILE = "ping_log.txt"
+LAST_PING_FILE = "/tmp/last_ping.txt"  # ← Renderでも書き込み可能なパス
+PING_LOG_FILE = "/tmp/ping_log.txt"
 
 @app.route("/", methods=["GET", "HEAD"])
 def ping():
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     with open(LAST_PING_FILE, "w") as f:
         f.write(now)
-    with open(PING_LOG_FILE, "a") as f:
-        f.write(now + "\n")
+    with open(PING_LOG_FILE, "a", encoding="utf-8") as f:
+        f.write(f"[{now}] UptimeRobot : 正常\n")
+    print(f"📡 Ping 受信: {now}")
     return "OK", 200
 
 @app.route("/char_count", methods=["GET"])
@@ -129,7 +130,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== DMで相互翻訳（自動言語判定）====
+# ==== DMで相互翻訳 ====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -141,7 +142,6 @@ async def on_message(message):
     other_lang = "EN" if native_lang != "EN" else "JA"
     text = message.content
 
-    # DeepLで言語自動判定（翻訳 + detected_source_language）
     detect_res = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
         "text": text
