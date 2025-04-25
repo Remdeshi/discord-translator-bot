@@ -2,7 +2,6 @@ import os
 import json
 import discord
 import requests
-import asyncio
 from flask import Flask, request
 from threading import Thread
 from datetime import datetime
@@ -16,11 +15,11 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 
-# ==== Flask（Render監視用）====
+# ==== Flask ====
 app = Flask(__name__)
 CHAR_COUNT_FILE = "char_count.json"
-PING_LOG_FILE = "ping_log.txt"
 LAST_PING_FILE = "last_ping.txt"
+PING_LOG_FILE = "ping_log.txt"
 
 @app.route("/", methods=["GET", "HEAD"])
 def ping():
@@ -39,6 +38,17 @@ def get_char_count():
         return data, 200
     return {"count": 0, "month": "unknown"}, 200
 
+@app.route("/last_ping", methods=["GET"])
+def get_last_ping():
+    if os.path.exists(LAST_PING_FILE):
+        with open(LAST_PING_FILE, "r") as f:
+            return {"last_ping": f.read().strip()}, 200
+    return {"last_ping": "まだ受信なし"}, 200
+
+# Flaskバックグラウンド起動
+Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
+
+# ==== 翻訳文字数記録 ====
 def update_char_count(add_count: int):
     current_month = datetime.now().strftime("%Y-%m")
     if os.path.exists(CHAR_COUNT_FILE):
@@ -54,10 +64,7 @@ def update_char_count(add_count: int):
     with open(CHAR_COUNT_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# Flaskをバックグラウンドで起動
-Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
-
-# ==== DeepL翻訳 ====
+# ==== DeepL翻訳関数 ====
 def translate(text, target_lang):
     response = requests.post(DEEPL_API_URL, data={
         "auth_key": DEEPL_API_KEY,
@@ -65,12 +72,13 @@ def translate(text, target_lang):
         "target_lang": target_lang
     })
     if response.status_code == 200:
-        update_char_count(len(text))  # ★ 翻訳ごとに文字数加算
+        update_char_count(len(text))  # 翻訳した文字数を加算
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
-# ==== 言語設定用ファイル ====
+# ==== 言語設定 ====
 LANG_FILE = "user_lang.json"
+
 def load_lang_settings():
     if not os.path.exists(LANG_FILE):
         return {}
@@ -81,7 +89,12 @@ def save_lang_settings(data):
     with open(LANG_FILE, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
-# ==== 言語候補 ====
+# ==== Bot設定 ====
+intents = discord.Intents.default()
+intents.message_content = True
+bot = commands.Bot(command_prefix="!", intents=intents)
+
+# ==== スラッシュコマンド：母国語設定 ====
 LANG_CHOICES = [
     app_commands.Choice(name="Japanese", value="JA"),
     app_commands.Choice(name="English", value="EN"),
@@ -94,18 +107,6 @@ LANG_CHOICES = [
     app_commands.Choice(name="Italian", value="IT")
 ]
 
-# ==== Botの準備 ====
-intents = discord.Intents.default()
-intents.message_content = True
-bot = commands.Bot(command_prefix="!", intents=intents)
-
-# ==== スラッシュコマンド登録 ====
-@bot.event
-async def on_ready():
-    await bot.tree.sync()
-    print(f"✅ Logged in as {bot.user}")
-
-# ==== /setlang コマンド ====
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
 async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[str]):
@@ -115,7 +116,13 @@ async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[st
     save_lang_settings(data)
     await interaction.response.send_message(f"✅ あなたの母国語を `{lang.name}` に設定しました！", ephemeral=True)
 
-# ==== DMで自動翻訳 ====
+# ==== Botログイン時 ====
+@bot.event
+async def on_ready():
+    await bot.tree.sync()
+    print(f"✅ Logged in as {bot.user}")
+
+# ==== DMで翻訳 ====
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -127,7 +134,7 @@ async def on_message(message):
     target_lang = "EN" if native_lang == "JA" else "JA"
 
     translated = translate(message.content, target_lang)
-    await message.channel.send(f"{translated}")
+    await message.channel.send(translated)
 
 # ==== Bot起動 ====
 bot.run(DISCORD_TOKEN)
