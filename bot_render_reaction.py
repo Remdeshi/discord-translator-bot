@@ -3,8 +3,9 @@ import json
 import discord
 import requests
 import asyncio
-from flask import Flask
+from flask import Flask, request
 from threading import Thread
+from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord import app_commands
@@ -15,11 +16,45 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
 DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
 
-# ==== Flask（Render Uptime用）====
+# ==== Flask（Render監視用）====
 app = Flask(__name__)
+CHAR_COUNT_FILE = "char_count.json"
+PING_LOG_FILE = "ping_log.txt"
+LAST_PING_FILE = "last_ping.txt"
+
 @app.route("/", methods=["GET", "HEAD"])
-def index():
-    return "Bot is running!", 200
+def ping():
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    with open(LAST_PING_FILE, "w") as f:
+        f.write(now)
+    with open(PING_LOG_FILE, "a") as f:
+        f.write(now + "\n")
+    return "OK", 200
+
+@app.route("/char_count", methods=["GET"])
+def get_char_count():
+    if os.path.exists(CHAR_COUNT_FILE):
+        with open(CHAR_COUNT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return data, 200
+    return {"count": 0, "month": "unknown"}, 200
+
+def update_char_count(add_count: int):
+    current_month = datetime.now().strftime("%Y-%m")
+    if os.path.exists(CHAR_COUNT_FILE):
+        with open(CHAR_COUNT_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+    else:
+        data = {"count": 0, "month": current_month}
+
+    if data.get("month") != current_month:
+        data = {"count": 0, "month": current_month}
+
+    data["count"] += add_count
+    with open(CHAR_COUNT_FILE, "w", encoding="utf-8") as f:
+        json.dump(data, f, ensure_ascii=False, indent=2)
+
+# Flaskをバックグラウンドで起動
 Thread(target=lambda: app.run(host="0.0.0.0", port=8080), daemon=True).start()
 
 # ==== DeepL翻訳 ====
@@ -30,6 +65,7 @@ def translate(text, target_lang):
         "target_lang": target_lang
     })
     if response.status_code == 200:
+        update_char_count(len(text))  # ★ 翻訳ごとに文字数加算
         return response.json()["translations"][0]["text"]
     return "[翻訳エラー]"
 
@@ -56,7 +92,6 @@ LANG_CHOICES = [
     app_commands.Choice(name="Spanish", value="ES"),
     app_commands.Choice(name="Russian", value="RU"),
     app_commands.Choice(name="Italian", value="IT")
-    # 必要ならもっと追加可能
 ]
 
 # ==== Botの準備 ====
@@ -70,7 +105,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== /setlang コマンド（補完付き！）====
+# ==== /setlang コマンド ====
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
 async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[str]):
