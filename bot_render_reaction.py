@@ -184,7 +184,7 @@ async def on_raw_reaction_add(payload):
         reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
         await message.remove_reaction(emoji, user)
 
-        await asyncio.sleep(30)
+        await asyncio.sleep(60)
         await reply.delete()
 
     except Exception as e:
