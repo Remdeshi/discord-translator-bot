@@ -103,8 +103,7 @@ flag_map = {
     "🇧🇬": "BG", "🇨🇳": "ZH", "🇨🇿": "CS", "🇩🇰": "DA", "🇳🇱": "NL", "🇺🇸": "EN", "🇬🇧": "EN",
     "🇪🇪": "ET", "🇫🇮": "FI", "🇫🇷": "FR", "🇩🇪": "DE", "🇬🇷": "EL", "🇭🇺": "HU", "🇮🇩": "ID",
     "🇮🇹": "IT", "🇯🇵": "JA", "🇰🇷": "KO", "🇱🇻": "LV", "🇱🇹": "LT", "🇵🇱": "PL", "🇵🇹": "PT",
-    "🇧🇷": "PT", "🇷🇴": "RO", "🇷🇺": "RU", "🇸🇰": "SK", "🇸🇮": "SL", "🇪🇸": "ES", "🇸🇪": "SV",
-    "🇹🇷": "TR", "🇺🇦": "UK"
+    "🇧🇷": "PT", "🇷🇴": "RO", "🇷🇺": "RU", "🇸🇰": "SK", "🇸🇮": "SL", "🇪🇸": "ES"
 }
 
 intents = discord.Intents.default()
@@ -119,7 +118,7 @@ LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
     ("Indonesian", "ID"), ("Italian", "IT"), ("Japanese", "JA"), ("Korean", "KO"),
     ("Latvian", "LV"), ("Lithuanian", "LT"), ("Polish", "PL"), ("Portuguese", "PT"),
     ("Romanian", "RO"), ("Russian", "RU"), ("Slovak", "SK"), ("Slovenian", "SL"),
-    ("Spanish", "ES"), ("Swedish", "SV"), ("Turkish", "TR"), ("Ukrainian", "UK")
+    ("Spanish", "ES")
 ]]
 
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
