@@ -100,9 +100,11 @@ def save_lang_settings(data):
 
 # ==== Discord Bot ====
 flag_map = {
-    "🇯🇵": "JA", "🇺🇸": "EN", "🇬🇧": "EN", "🇨🇦": "EN", "🇦🇺": "EN",
-    "🇫🇷": "FR", "🇩🇪": "DE", "🇪🇸": "ES", "🇮🇹": "IT", "🇳🇱": "NL",
-    "🇷🇺": "RU", "🇰🇷": "KO", "🇨🇳": "ZH", "🇹🇼": "ZH"
+    "🇧🇬": "BG", "🇨🇳": "ZH", "🇨🇿": "CS", "🇩🇰": "DA", "🇳🇱": "NL", "🇺🇸": "EN", "🇬🇧": "EN",
+    "🇪🇪": "ET", "🇫🇮": "FI", "🇫🇷": "FR", "🇩🇪": "DE", "🇬🇷": "EL", "🇭🇺": "HU", "🇮🇩": "ID",
+    "🇮🇹": "IT", "🇯🇵": "JA", "🇰🇷": "KO", "🇱🇻": "LV", "🇱🇹": "LT", "🇵🇱": "PL", "🇵🇹": "PT",
+    "🇧🇷": "PT", "🇷🇴": "RO", "🇷🇺": "RU", "🇸🇰": "SK", "🇸🇮": "SL", "🇪🇸": "ES", "🇸🇪": "SV",
+    "🇹🇷": "TR", "🇺🇦": "UK"
 }
 
 intents = discord.Intents.default()
@@ -110,17 +112,15 @@ intents.message_content = True
 intents.reactions = True
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-LANG_CHOICES = [
-    app_commands.Choice(name="Japanese", value="JA"),
-    app_commands.Choice(name="English", value="EN"),
-    app_commands.Choice(name="French", value="FR"),
-    app_commands.Choice(name="German", value="DE"),
-    app_commands.Choice(name="Korean", value="KO"),
-    app_commands.Choice(name="Chinese", value="ZH"),
-    app_commands.Choice(name="Spanish", value="ES"),
-    app_commands.Choice(name="Russian", value="RU"),
-    app_commands.Choice(name="Italian", value="IT")
-]
+LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
+    ("Bulgarian", "BG"), ("Chinese", "ZH"), ("Czech", "CS"), ("Danish", "DA"),
+    ("Dutch", "NL"), ("English", "EN"), ("Estonian", "ET"), ("Finnish", "FI"),
+    ("French", "FR"), ("German", "DE"), ("Greek", "EL"), ("Hungarian", "HU"),
+    ("Indonesian", "ID"), ("Italian", "IT"), ("Japanese", "JA"), ("Korean", "KO"),
+    ("Latvian", "LV"), ("Lithuanian", "LT"), ("Polish", "PL"), ("Portuguese", "PT"),
+    ("Romanian", "RO"), ("Russian", "RU"), ("Slovak", "SK"), ("Slovenian", "SL"),
+    ("Spanish", "ES"), ("Swedish", "SV"), ("Turkish", "TR"), ("Ukrainian", "UK")
+]]
 
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
@@ -163,7 +163,7 @@ async def on_message(message):
     translated = translate(text, target_lang)
     await message.channel.send(translated)
 
-# ==== リアクション翻訳（修正済み） ====
+# ==== リアクション翻訳 ====
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
@@ -183,10 +183,8 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
         reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
         await message.remove_reaction(emoji, user)
-
         await asyncio.sleep(60)
         await reply.delete()
-
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
