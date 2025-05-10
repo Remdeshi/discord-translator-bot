@@ -163,7 +163,7 @@ async def on_message(message):
     embed = discord.Embed(description=translated, color=discord.Color.teal())
     await message.channel.send(embed=embed)
 
-# ==== リアクション翻訳 ====
+# ==== リアクション翻訳（リプライ式） ====
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id:
@@ -183,8 +183,14 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
 
         embed = discord.Embed(description=translated, color=discord.Color.teal())
-        reply = await channel.send(f"<@{payload.user_id}> {emoji}", embed=embed)
+
+        # リプライ式に変更
+        reply = await message.reply(embed=embed)
+
+        # リアクションを外す
         await message.remove_reaction(emoji, user)
+
+        # 60秒後にリプライを削除
         await asyncio.sleep(60)
         await reply.delete()
     except Exception as e:
