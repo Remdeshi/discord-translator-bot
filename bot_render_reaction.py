@@ -116,6 +116,18 @@ intents.reactions = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
+# タイムゾーンの簡潔な選択肢
+TIMEZONE_CHOICES = [
+    app_commands.Choice(name="UTC", value="UTC"),
+    app_commands.Choice(name="JST (Japan Standard Time)", value="Asia/Tokyo"),
+    app_commands.Choice(name="PST (Pacific Standard Time)", value="America/Los_Angeles"),
+    app_commands.Choice(name="CET (Central European Time)", value="Europe/Berlin"),
+    app_commands.Choice(name="EST (Eastern Standard Time)", value="America/New_York"),
+    app_commands.Choice(name="BST (British Summer Time)", value="Europe/London"),
+    app_commands.Choice(name="AEST (Australian Eastern Standard Time)", value="Australia/Sydney"),
+]
+
+# 言語選択肢の定義
 LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
     ("Bulgarian", "BG"), ("Chinese", "ZH"), ("Czech", "CS"), ("Danish", "DA"),
     ("Dutch", "NL"), ("English", "EN"), ("Estonian", "ET"), ("Finnish", "FI"),
@@ -131,7 +143,7 @@ async def on_ready():
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
-# ==== コマンド ====
+# 言語設定コマンド
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
 async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[str]):
@@ -141,16 +153,17 @@ async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[st
     save_lang_settings(data)
     await interaction.response.send_message(f"✅ あなたの母国語を `{lang.name}` に設定しました！", ephemeral=True)
 
+# タイムスタンプ作成コマンド
 @bot.tree.command(name="create", description="指定した日付と時刻をタイムゾーン付きで表示します")
-async def create(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: str):
-    tz = pytz.timezone(timezone)
+async def create(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: app_commands.Choice[str]):
+    tz = pytz.timezone(timezone.value)
     dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
     formatted = dt.strftime("%m/%d %H:%M")
     embed = discord.Embed(title="タイムスタンプ", description=f"🕒 {formatted}", color=discord.Color.blue())
-    embed.add_field(name="タイムゾーン", value=timezone, inline=False)
+    embed.add_field(name="タイムゾーン", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
 
-# ==== DM翻訳（通常テキスト） ====
+# DM翻訳（通常テキスト）
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -177,7 +190,7 @@ async def on_message(message):
     # DMでは通常テキストで返信
     await message.channel.send(translated)
 
-# ==== リアクション翻訳（埋め込みメッセージ） ====
+# リアクション翻訳（埋め込みメッセージ）
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id or str(payload.emoji) not in flag_map:
@@ -202,5 +215,5 @@ async def on_raw_reaction_add(payload):
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
-# ==== Bot起動 ====
+# Bot起動
 bot.run(DISCORD_TOKEN)
