@@ -171,8 +171,8 @@ async def create(interaction: discord.Interaction, month: int, day: int, hour: i
     dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
     unix_time = int(dt.timestamp())
     timestamp_str = f"<t:{unix_time}>"
-    embed = discord.Embed(title="タイムスタンプ", description=f"🕒 {timestamp_str}", color=discord.Color.blue())
-    embed.add_field(name="タイムゾーン", value=timezone.name, inline=False)
+    embed = discord.Embed(title="TimeStamp", description=f"🕒 {timestamp_str}", color=discord.Color.blue())
+    embed.add_field(name="TimeZone", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
 
 # DM翻訳（通常テキスト）
