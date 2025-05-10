@@ -9,6 +9,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from discord.ext import commands
 from discord import app_commands
+import pytz  # タイムゾーンを扱うためのモジュール
 
 # ==== 環境変数 ====
 load_dotenv()
@@ -120,6 +121,23 @@ LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
     ("Romanian", "RO"), ("Russian", "RU"), ("Slovak", "SK"), ("Slovenian", "SL"),
     ("Spanish", "ES")
 ]]
+
+# ==== タイムゾーンスタンプ作成 ====
+@bot.tree.command(name="create", description="指定した日付と時刻をタイムゾーン付きで表示します")
+async def create(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: str):
+    # 入力された日時をUTCに変換
+    tz = pytz.timezone(timezone)
+    dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
+
+    # タイムスタンプ表示
+    formatted_time = dt.strftime("%m/%d %H:%M")  # 日付と時間だけ
+    embed = discord.Embed(
+        title="タイムスタンプ",
+        description=f"🕒 {formatted_time}",
+        color=discord.Color.blue()  # カラーを指定（青色）
+    )
+    embed.add_field(name="タイムゾーン", value=f"{timezone}", inline=False)
+    await interaction.response.send_message(embed=embed)
 
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
