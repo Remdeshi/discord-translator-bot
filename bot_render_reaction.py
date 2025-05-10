@@ -179,6 +179,7 @@ async def on_message(message):
     translated = translate(text, target_lang)
 
     embed = discord.Embed(description=translated, color=discord.Color.teal())
+    embed.set_footer(text=f"翻訳者: {message.author.name}")
     await message.channel.send(embed=embed)
 
 # ==== リアクション翻訳（リプライ式） ====
@@ -201,6 +202,7 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
 
         embed = discord.Embed(description=translated, color=discord.Color.teal())
+        embed.set_footer(text=f"翻訳者: {user.name}")
 
         # リプライ式に変更
         reply = await message.reply(embed=embed)
