@@ -158,9 +158,10 @@ async def on_message(message):
 
     detected_lang = detect_res.json()["translations"][0]["detected_source_language"]
     target_lang = other_lang if detected_lang == native_lang else native_lang
-
     translated = translate(text, target_lang)
-    await message.channel.send(translated)
+
+    embed = discord.Embed(description=translated, color=discord.Color.teal())
+    await message.channel.send(embed=embed)
 
 # ==== リアクション翻訳 ====
 @bot.event
@@ -180,7 +181,9 @@ async def on_raw_reaction_add(payload):
         message = await channel.fetch_message(payload.message_id)
         user = await bot.fetch_user(payload.user_id)
         translated = translate(message.content, flag_map[emoji])
-        reply = await channel.send(f"<@{payload.user_id}> {emoji} {translated}")
+
+        embed = discord.Embed(description=translated, color=discord.Color.teal())
+        reply = await channel.send(f"<@{payload.user_id}> {emoji}", embed=embed)
         await message.remove_reaction(emoji, user)
         await asyncio.sleep(60)
         await reply.delete()
