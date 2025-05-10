@@ -199,8 +199,8 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
 
         embed = discord.Embed(description=translated, color=discord.Color.teal())
-        # ユーザー名だけを表示するように変更
-        embed.set_footer(text=f"{user.name}")
+         # プロフィール名を表示するように変更
+        embed.set_footer(text=f"{user.display_name}")
 
         reply = await message.reply(embed=embed)
         await message.remove_reaction(emoji, user)
