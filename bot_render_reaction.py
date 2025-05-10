@@ -125,16 +125,14 @@ LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
 # ==== タイムゾーンスタンプ作成 ====
 @bot.tree.command(name="create", description="指定した日付と時刻をタイムゾーン付きで表示します")
 async def create(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: str):
-    # 入力された日時をUTCに変換
     tz = pytz.timezone(timezone)
     dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
 
-    # タイムスタンプ表示
-    formatted_time = dt.strftime("%m/%d %H:%M")  # 日付と時間だけ
+    formatted_time = dt.strftime("%m/%d %H:%M")
     embed = discord.Embed(
         title="タイムスタンプ",
         description=f"🕒 {formatted_time}",
-        color=discord.Color.blue()  # カラーを指定（青色）
+        color=discord.Color.blue()
     )
     embed.add_field(name="タイムゾーン", value=f"{timezone}", inline=False)
     await interaction.response.send_message(embed=embed)
@@ -179,7 +177,6 @@ async def on_message(message):
     translated = translate(text, target_lang)
 
     embed = discord.Embed(description=translated, color=discord.Color.teal())
-    embed.set_footer(text=f"翻訳者: {message.author.name}")
     await message.channel.send(embed=embed)
 
 # ==== リアクション翻訳（リプライ式） ====
@@ -202,15 +199,12 @@ async def on_raw_reaction_add(payload):
         translated = translate(message.content, flag_map[emoji])
 
         embed = discord.Embed(description=translated, color=discord.Color.teal())
-        embed.set_footer(text=f"翻訳者: {user.name}")
+        # ユーザー名だけを表示するように変更
+        embed.set_footer(text=f"{user.name}")
 
-        # リプライ式に変更
         reply = await message.reply(embed=embed)
-
-        # リアクションを外す
         await message.remove_reaction(emoji, user)
 
-        # 60秒後にリプライを削除
         await asyncio.sleep(60)
         await reply.delete()
     except Exception as e:
