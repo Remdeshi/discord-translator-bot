@@ -171,7 +171,15 @@ async def setlang(interaction: discord.Interaction, lang: discord.app_commands.C
 
 # タイムスタンプ作成コマンド
 @bot.tree.command(name="create_timestamp", description="指定した日付と時刻をタイムゾーン付きで表示します")
-async def create_timestamp(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: discord.app_commands.Choice[str]):
+@app_commands.choices(timezone=TIMEZONE_CHOICES)  # ← これを追加！
+async def create_timestamp(
+    interaction: discord.Interaction,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    timezone: discord.app_commands.Choice[str]
+):
     tz = pytz.timezone(timezone.value)
     dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
     unix_time = int(dt.timestamp())
@@ -179,6 +187,7 @@ async def create_timestamp(interaction: discord.Interaction, month: int, day: in
     embed = discord.Embed(title="TimeStamp", description=f"🕒 {timestamp_str}", color=discord.Color.blue())
     embed.add_field(name="TimeZone", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
+
 
 # DM翻訳（通常テキスト）
 @bot.event
