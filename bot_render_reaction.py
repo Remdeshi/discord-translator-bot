@@ -108,11 +108,14 @@ flag_map = {
     "🇧🇷": "PT", "🇷🇴": "RO", "🇷🇺": "RU", "🇸🇰": "SK", "🇸🇮": "SL", "🇪🇸": "ES"
 }
 
+from discord.ext import commands  # ← 上の方にない場合は追加
+
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 
-bot = discord.Bot(intents=intents)
+bot = commands.Bot(command_prefix="!", intents=intents)
+
 
 # タイムゾーンの簡潔な選択肢
 TIMEZONE_CHOICES = [
