@@ -140,6 +140,13 @@ TIMEZONE_CHOICES = [
     discord.app_commands.Choice(name="KST", value="Asia/Seoul"),
     discord.app_commands.Choice(name="AEST", value="Australia/Sydney"),
     discord.app_commands.Choice(name="NZDT", value="Pacific/Auckland"),
+     # ここからUTC-3関連タイムゾーン追加
+    discord.app_commands.Choice(name="BRT (Brazil)", value="America/Sao_Paulo"),
+    discord.app_commands.Choice(name="ART (Argentina)", value="America/Argentina/Buenos_Aires"),
+    discord.app_commands.Choice(name="Uruguay", value="America/Montevideo"),
+    discord.app_commands.Choice(name="Suriname", value="America/Paramaribo"),
+    discord.app_commands.Choice(name="Falkland Islands", value="Atlantic/Stanley"),
+    
 ]
 
 # 言語選択肢の定義
