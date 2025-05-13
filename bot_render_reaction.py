@@ -181,7 +181,7 @@ async def create_timestamp(
     timezone: discord.app_commands.Choice[str]
 ):
     tz = pytz.timezone(timezone.value)
-    dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
+    dt = tz.localize(datetime(datetime.now().year, month, day, hour, minute))
     unix_time = int(dt.timestamp())
     timestamp_str = f"<t:{unix_time}>"
     embed = discord.Embed(title="TimeStamp", description=f"🕒 {timestamp_str}", color=discord.Color.blue())
