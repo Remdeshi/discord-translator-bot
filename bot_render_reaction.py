@@ -9,6 +9,9 @@ from datetime import datetime
 from dotenv import load_dotenv
 import pytz
 
+from discord import app_commands  # ← ★ これを追加
+from discord.ext import commands
+
 # ==== 環境変数読み込み ====
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
