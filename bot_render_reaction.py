@@ -7,8 +7,6 @@ from flask import Flask, request
 from threading import Thread
 from datetime import datetime
 from dotenv import load_dotenv
-from discord.ext import commands
-from discord import app_commands
 import pytz
 
 # ==== 環境変数読み込み ====
@@ -114,32 +112,32 @@ intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 
-bot = commands.Bot(command_prefix="!", intents=intents)
+bot = discord.Bot(intents=intents)
 
 # タイムゾーンの簡潔な選択肢
 TIMEZONE_CHOICES = [
-    app_commands.Choice(name="JST", value="Asia/Tokyo"),
-    app_commands.Choice(name="UTC", value="UTC"),
-    app_commands.Choice(name="EST", value="America/New_York"),
-    app_commands.Choice(name="PST", value="America/Los_Angeles"),
-    app_commands.Choice(name="CST", value="America/Chicago"),
-    app_commands.Choice(name="MST", value="America/Denver"),
-    app_commands.Choice(name="AKST", value="America/Anchorage"),
-    app_commands.Choice(name="HST", value="Pacific/Honolulu"),
-    app_commands.Choice(name="GMT", value="Europe/London"),
-    app_commands.Choice(name="CET", value="Europe/Berlin"),
-    app_commands.Choice(name="EET", value="Europe/Helsinki"),
-    app_commands.Choice(name="MSK", value="Europe/Moscow"),
-    app_commands.Choice(name="IST", value="Asia/Kolkata"),
-    app_commands.Choice(name="HKT", value="Asia/Hong_Kong"),
-    app_commands.Choice(name="SGT", value="Asia/Singapore"),
-    app_commands.Choice(name="KST", value="Asia/Seoul"),
-    app_commands.Choice(name="AEST", value="Australia/Sydney"),
-    app_commands.Choice(name="NZDT", value="Pacific/Auckland"),
+    discord.app_commands.Choice(name="JST", value="Asia/Tokyo"),
+    discord.app_commands.Choice(name="UTC", value="UTC"),
+    discord.app_commands.Choice(name="EST", value="America/New_York"),
+    discord.app_commands.Choice(name="PST", value="America/Los_Angeles"),
+    discord.app_commands.Choice(name="CST", value="America/Chicago"),
+    discord.app_commands.Choice(name="MST", value="America/Denver"),
+    discord.app_commands.Choice(name="AKST", value="America/Anchorage"),
+    discord.app_commands.Choice(name="HST", value="Pacific/Honolulu"),
+    discord.app_commands.Choice(name="GMT", value="Europe/London"),
+    discord.app_commands.Choice(name="CET", value="Europe/Berlin"),
+    discord.app_commands.Choice(name="EET", value="Europe/Helsinki"),
+    discord.app_commands.Choice(name="MSK", value="Europe/Moscow"),
+    discord.app_commands.Choice(name="IST", value="Asia/Kolkata"),
+    discord.app_commands.Choice(name="HKT", value="Asia/Hong_Kong"),
+    discord.app_commands.Choice(name="SGT", value="Asia/Singapore"),
+    discord.app_commands.Choice(name="KST", value="Asia/Seoul"),
+    discord.app_commands.Choice(name="AEST", value="Australia/Sydney"),
+    discord.app_commands.Choice(name="NZDT", value="Pacific/Auckland"),
 ]
 
 # 言語選択肢の定義
-LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
+LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, code in [
     ("Bulgarian", "BG"), ("Chinese", "ZH"), ("Czech", "CS"), ("Danish", "DA"),
     ("Dutch", "NL"), ("English", "EN"), ("Estonian", "ET"), ("Finnish", "FI"),
     ("French", "FR"), ("German", "DE"), ("Greek", "EL"), ("Hungarian", "HU"),
@@ -151,13 +149,12 @@ LANG_CHOICES = [app_commands.Choice(name=name, value=code) for name, code in [
 
 @bot.event
 async def on_ready():
-    await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
 # 言語設定コマンド
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
-async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[str]):
+async def setlang(interaction: discord.Interaction, lang: discord.app_commands.Choice[str]):
     user_id = str(interaction.user.id)
     data = load_lang_settings()
     data[user_id] = lang.value
@@ -165,8 +162,8 @@ async def setlang(interaction: discord.Interaction, lang: app_commands.Choice[st
     await interaction.response.send_message(f"✅ あなたの母国語を {lang.name} に設定しました！", ephemeral=True)
 
 # タイムスタンプ作成コマンド
-@bot.tree.command(name="create", description="指定した日付と時刻をタイムゾーン付きで表示します")
-async def create(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: app_commands.Choice[str]):
+@bot.tree.command(name="create_timestamp", description="指定した日付と時刻をタイムゾーン付きで表示します")
+async def create_timestamp(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, timezone: discord.app_commands.Choice[str]):
     tz = pytz.timezone(timezone.value)
     dt = datetime(datetime.now().year, month, day, hour, minute, tzinfo=pytz.utc).astimezone(tz)
     unix_time = int(dt.timestamp())
