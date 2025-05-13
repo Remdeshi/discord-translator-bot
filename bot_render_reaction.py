@@ -149,7 +149,9 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()  # スラッシュコマンドを同期するための行
     print(f"✅ Logged in as {bot.user}")
+
 
 # 言語設定コマンド
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
