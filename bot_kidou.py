@@ -284,17 +284,23 @@ async def listevents(interaction: discord.Interaction):
 
     embed = discord.Embed(title="登録イベント一覧", color=discord.Color.green())
     for i, event in enumerate(events, 1):
-        dt = datetime.fromisoformat(event["datetime"])
+        dt = datetime.fromisoformat(event["datetime"])  # ISO8601形式文字列をdatetimeに
+        unix_timestamp = int(dt.timestamp())  # Unixタイムスタンプに変換
         name = event.get("name", "無名イベント")
         content = event.get("content", "")
         channel_id = event.get("channel_id", 0)
+        
+        # Discordのタイムスタンプ形式 <t:unix_timestamp:F> で日時表示
+        timestamp_str = f"<t:{unix_timestamp}:F>"
+        
         embed.add_field(
-            name=f"{i}. {name} - {dt.strftime('%m/%d %H:%M')}",
+            name=f"{i}. {name} - {timestamp_str}",
             value=f"内容: {content}\n送信先チャンネルID: {channel_id}",
             inline=False,
         )
 
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 @bot.event
 async def on_message(message):
