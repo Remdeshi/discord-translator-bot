@@ -29,7 +29,6 @@ intents.reactions = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-# タイムゾーンの選択肢
 TIMEZONE_CHOICES = [
     discord.app_commands.Choice(name="JST", value="Asia/Tokyo"),
     discord.app_commands.Choice(name="UTC", value="UTC"),
@@ -68,7 +67,8 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
 
 Thread(target=start_flask, daemon=True).start()
 
-import aiohttp  # これを追加
+import aiohttp
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -127,10 +127,9 @@ async def on_message(message):
             data = await res.json()
             detected = data["translations"][0]["detected_source_language"]
             target = other_lang if detected == native_lang else native_lang
-            translated = translate(message.content, target)
+            translated = await translate(message.content, target)
 
             await message.channel.send(translated)
-
 
 @bot.event
 async def on_raw_reaction_add(payload):
@@ -144,7 +143,7 @@ async def on_raw_reaction_add(payload):
     try:
         message = await channel.fetch_message(payload.message_id)
         user = await bot.fetch_user(payload.user_id)
-        translated = translate(message.content, flag_map[str(payload.emoji)])
+        translated = await translate(message.content, flag_map[str(payload.emoji)])
 
         embed = discord.Embed(description=translated, color=discord.Color.teal())
         embed.set_footer(text=f"{user.display_name}")
@@ -157,4 +156,3 @@ async def on_raw_reaction_add(payload):
         print(f"リアクション翻訳エラー: {e}")
 
 bot.run(DISCORD_TOKEN)
-全部直して
