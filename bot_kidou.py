@@ -199,6 +199,27 @@ async def addevent(
     except Exception as e:
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
 
+@bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
+async def listevents(interaction: discord.Interaction):
+    events = load_events()
+    if not events:
+        await interaction.response.send_message("登録されているイベントはありません。", ephemeral=True)
+        return
+
+    embed = discord.Embed(title="登録イベント一覧", color=discord.Color.green())
+    for i, event in enumerate(events, 1):
+        dt = datetime.fromisoformat(event["datetime"])
+        name = event.get("name", "無名イベント")
+        content = event.get("content", "")
+        channel_id = event.get("channel_id", 0)
+        embed.add_field(
+            name=f"{i}. {name} - {dt.strftime('%m/%d %H:%M')}",
+            value=f"内容: {content}\n送信先チャンネルID: {channel_id}",
+            inline=False,
+        )
+
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
