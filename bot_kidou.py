@@ -308,6 +308,7 @@ async def listevents(interaction: discord.Interaction):
     await interaction.response.send_message(embed=embed, ephemeral=True)
 
 
+# DM翻訳（通常テキスト）
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -316,25 +317,22 @@ async def on_message(message):
     user_id = str(message.author.id)
     settings = load_lang_settings()
     native_lang = settings.get(user_id, "JA")
+    other_lang = "EN" if native_lang != "EN" else "JA"
 
-    detected_lang = await detect_language(message.content)
-    if detected_lang is None:
-        # 言語検出失敗時は処理しないか、適当にデフォルトを設定
-        detected_lang = native_lang
+    res = requests.post(DEEPL_API_URL, data={
+        "auth_key": DEEPL_API_KEY,
+        "text": message.content,
+        "target_lang": "EN"
+    })
+    if res.status_code != 200:
+        await message.channel.send("[翻訳エラー]")
+        return
 
-    if detected_lang == native_lang:
-        target_lang = "EN" if native_lang != "EN" else "JA"
-    else:
-        target_lang = native_lang
+    detected = res.json()["translations"][0]["detected_source_language"]
+    target = other_lang if detected == native_lang else native_lang
+    translated = translate(message.content, target)
 
-    translated = await translate(message.content, target_lang)
-
-    if translated == "[翻訳エラー]":
-        await message.channel.send(translated)
-    else:
-        await message.channel.send(translated)
-
-    await bot.process_commands(message)  # コマンド処理のために必須
+    await message.channel.send(translated)
 
 
 
