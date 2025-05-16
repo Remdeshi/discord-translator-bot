@@ -120,7 +120,7 @@ def add_event(month, day, hour, minute, name, content, channel_id):
 async def event_checker(bot):
     await bot.wait_until_ready()
     while not bot.is_closed():
-        now = datetime.now()
+        now = datetime.now(tz=pytz.UTC)  # UTC aware datetimeに修正
         events = load_events()
         updated = False
 
@@ -133,7 +133,7 @@ async def event_checker(bot):
                         f"📢 **イベント通知** 📢\n"
                         f"**{event['name']}**\n"
                         f"{event['content']}\n"
-                        f"日時: {event_time.strftime('%m/%d %H:%M')}"
+                        f"日時: {event_time.strftime('%m/%d %H:%M')} UTC"
                     )
                     try:
                         await channel.send(msg)
@@ -141,11 +141,14 @@ async def event_checker(bot):
                         updated = True
                     except Exception as e:
                         print(f"Failed to send event message: {e}")
+                else:
+                    print(f"Channel with ID {event['channel_id']} not found.")
 
         if updated:
             save_events(events)
 
         await asyncio.sleep(60)
+
 
 @bot.event
 async def on_ready():
