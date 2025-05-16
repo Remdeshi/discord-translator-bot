@@ -192,7 +192,7 @@ async def addevent(
     minute: int,
     name: str,
     content: str,
-    channel_id: int
+    channel: TextChannel
 ):
     try:
         add_event(month, day, hour, minute, name, content, channel_id)
