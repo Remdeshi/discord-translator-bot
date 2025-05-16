@@ -122,11 +122,11 @@ async def event_checker(bot):
     while not bot.is_closed():
         now = datetime.now(tz=pytz.UTC)  # UTC aware datetimeに修正
         events = load_events()
-        updated = False
+        remaining_events = []
 
         for event in events:
             event_time = datetime.fromisoformat(event["datetime"])
-            if not event.get("announced") and now >= event_time:
+            if now >= event_time:
                 channel = bot.get_channel(event["channel_id"])
                 if channel:
                     msg = (
@@ -137,18 +137,20 @@ async def event_checker(bot):
                     )
                     try:
                         await channel.send(msg)
-                        event["announced"] = True
-                        updated = True
+                        # 通知成功したら削除（=リストに残さない）
+                        continue
                     except Exception as e:
                         print(f"Failed to send event message: {e}")
                 else:
                     print(f"Channel with ID {event['channel_id']} not found.")
+            else:
+                # まだ通知タイミングでないものは残す
+                remaining_events.append(event)
 
-        if updated:
-            save_events(events)
+        # 残ったイベントだけ保存
+        save_events(remaining_events)
 
         await asyncio.sleep(60)
-
 
 @bot.event
 async def on_ready():
