@@ -17,6 +17,7 @@ from web.uptime_server import start_flask
 
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
+DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")  # ← ここに書く！
 
 flag_map = {
     "🇧🇬": "BG", "🇨🇳": "ZH", "🇨🇿": "CS", "🇩🇰": "DA", "🇳🇱": "NL", "🇺🇸": "EN", "🇬🇧": "EN",
