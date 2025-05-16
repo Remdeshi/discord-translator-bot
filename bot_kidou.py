@@ -94,14 +94,20 @@ def save_events(events):
     except Exception as e:
         print(f"Failed to save events: {e}")
 
+import pytz
+from datetime import datetime
+
 def add_event(month, day, hour, minute, name, content, channel_id):
-    now = datetime.now()
-    event_datetime = datetime(now.year, month, day, hour, minute)
+    tz = pytz.timezone("Asia/Tokyo")  # JST想定
+    now = datetime.now(tz)
+    event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
     if event_datetime < now:
         event_datetime = event_datetime.replace(year=now.year + 1)
 
+    event_datetime_utc = event_datetime.astimezone(pytz.UTC)  # UTCに変換
+
     event = {
-        "datetime": event_datetime.isoformat(),
+        "datetime": event_datetime_utc.isoformat(),  # UTCで保存
         "name": name,
         "content": content,
         "channel_id": channel_id,
