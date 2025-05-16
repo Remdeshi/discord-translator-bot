@@ -316,15 +316,16 @@ async def on_message(message):
     user_id = str(message.author.id)
     settings = load_lang_settings()
     native_lang = settings.get(user_id, "JA")
-    other_lang = "EN" if native_lang != "EN" else "JA"
 
-    target = other_lang
+    target = native_lang  # ここを母国語にする
+
     translated = await translate(message.content, target)
 
     if translated == "[翻訳エラー]":
         await message.channel.send(translated)
     else:
         await message.channel.send(translated)
+
 
 @bot.event
 async def on_raw_reaction_add(payload):
