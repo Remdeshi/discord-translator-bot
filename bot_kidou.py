@@ -317,17 +317,22 @@ async def on_message(message):
     settings = load_lang_settings()
     native_lang = settings.get(user_id, "JA")
 
-    # DeepLの翻訳関数が言語検出を返す想定なら
-    detected_lang, translated = await translate(message.content, native_lang, return_detected_lang=True)
+    # 1. まず言語検出だけ行う（DeepL APIを直接呼ぶなど）
+    detected_lang = await detect_language(message.content)  # 独自に作るかAPI直叩き
 
-    # detected_langがnative_langなら翻訳不要
     if detected_lang == native_lang:
-        await message.channel.send(message.content)  # そのまま返すか無視するか
+        # 母国語だったら他の言語に翻訳して返す（例えば英語）
+        target_lang = "EN" if native_lang != "EN" else "JA"
     else:
-        if translated == "[翻訳エラー]":
-            await message.channel.send(translated)
-        else:
-            await message.channel.send(translated)
+        target_lang = native_lang
+
+    translated = await translate(message.content, target_lang)
+
+    if translated == "[翻訳エラー]":
+        await message.channel.send(translated)
+    else:
+        await message.channel.send(translated)
+
 
 
 @bot.event
