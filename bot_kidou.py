@@ -280,10 +280,13 @@ async def on_raw_reaction_add(payload):
             icon_url=user.avatar.url if user.avatar else None
         )
 
-        await channel.send(embed=embed)
+        msg = await channel.send(embed=embed)  # 送信メッセージを保存
 
         await message.remove_reaction(payload.emoji, user)
         await asyncio.sleep(60)
+
+        await msg.delete()  # 60秒後に翻訳メッセージ削除
+
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
