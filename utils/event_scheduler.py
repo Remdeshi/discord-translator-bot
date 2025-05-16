@@ -7,17 +7,14 @@ DATA_DIR = "data"
 EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
 
 def load_events():
-    # dataフォルダがなければ作成
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
     
-    # events.jsonがなければ空リストで作成
     if not os.path.exists(EVENTS_FILE):
         with open(EVENTS_FILE, "w", encoding="utf-8") as f:
             json.dump([], f, ensure_ascii=False, indent=2)
         return []
     
-    # 既存ファイル読み込み
     with open(EVENTS_FILE, "r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -48,7 +45,12 @@ async def event_checker(bot, channel_id):
             if not event.get("announced") and now >= event_time:
                 channel = bot.get_channel(channel_id)
                 if channel:
-                    msg = f"📢 **イベント通知** 📢\n**{event['name']}**\n{event['content']}\n日時: {event_time.strftime('%m/%d %H:%M')}"
+                    msg = (
+                        f"📢 **Event Reminder** 📢\n"
+                        f"**{event['name']}**\n"
+                        f"{event['content']}\n"
+                        f"Scheduled for: {event_time.strftime('%b %d %H:%M')}"
+                    )
                     await channel.send(msg)
                     event["announced"] = True
                     updated = True
@@ -56,4 +58,4 @@ async def event_checker(bot, channel_id):
         if updated:
             save_events(events)
 
-        await asyncio.sleep(60)  # 1分ごとにチェック
+        await asyncio.sleep(60)  # Check every minute
