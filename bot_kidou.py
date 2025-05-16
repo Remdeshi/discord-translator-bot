@@ -271,15 +271,22 @@ async def on_raw_reaction_add(payload):
         user = await bot.fetch_user(payload.user_id)
         translated = await translate(message.content, flag_map[str(payload.emoji)])
 
-        embed = discord.Embed(description=translated, color=discord.Color.teal())
-        embed.set_footer(text=f"{user.display_name}")
-        reply = await message.reply(embed=embed)
+        embed = discord.Embed(
+            description=translated,
+            color=discord.Color.teal()
+        )
+        embed.set_author(
+            name=user.display_name,
+            icon_url=user.avatar.url if user.avatar else None
+        )
+
+        await channel.send(embed=embed)
 
         await message.remove_reaction(payload.emoji, user)
         await asyncio.sleep(60)
-        await reply.delete()
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
+
 
 @bot.event
 async def on_connect():
