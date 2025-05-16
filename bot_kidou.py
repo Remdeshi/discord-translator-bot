@@ -7,7 +7,7 @@ import pytz
 from dotenv import load_dotenv
 import json
 
-from discord import app_commands
+from discord import app_commands, TextChannel  # ← ここでTextChannelをimport
 from discord.ext import commands
 
 from utils.translate import translate
@@ -68,7 +68,6 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
 
 Thread(target=start_flask, daemon=True).start()
 
-# イベント保存用ファイル定義
 DATA_DIR = "data"
 EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
 
@@ -140,7 +139,7 @@ async def event_checker(bot):
         if updated:
             save_events(events)
 
-        await asyncio.sleep(60)  # 60秒ごとにチェック
+        await asyncio.sleep(60)
 
 @bot.event
 async def on_ready():
@@ -182,7 +181,7 @@ async def create_timestamp(
     minute="min（0〜59）",
     name="event_name",
     content="event",
-    channel_id="channelID"
+    channel="channel"
 )
 async def addevent(
     interaction: discord.Interaction,
@@ -192,10 +191,10 @@ async def addevent(
     minute: int,
     name: str,
     content: str,
-    channel: TextChannel
+    channel: TextChannel  # ← 修正済み
 ):
     try:
-        add_event(month, day, hour, minute, name, content, channel_id)
+        add_event(month, day, hour, minute, name, content, channel.id)  # ← channel_idではなくchannel.id
         await interaction.response.send_message(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
     except Exception as e:
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
