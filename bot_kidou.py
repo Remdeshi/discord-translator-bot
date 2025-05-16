@@ -5,6 +5,7 @@ from threading import Thread
 from datetime import datetime
 import pytz
 from dotenv import load_dotenv
+import json
 
 from discord import app_commands
 from discord.ext import commands
@@ -67,6 +68,80 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
 
 Thread(target=start_flask, daemon=True).start()
 
+# イベント保存用ファイル定義
+DATA_DIR = "data"
+EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
+
+def load_events():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
+    if not os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        return []
+
+    try:
+        with open(EVENTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Failed to load events: {e}")
+        return []
+
+def save_events(events):
+    try:
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(events, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Failed to save events: {e}")
+
+def add_event(month, day, hour, minute, name, content, channel_id):
+    now = datetime.now()
+    event_datetime = datetime(now.year, month, day, hour, minute)
+    if event_datetime < now:
+        event_datetime = event_datetime.replace(year=now.year + 1)
+
+    event = {
+        "datetime": event_datetime.isoformat(),
+        "name": name,
+        "content": content,
+        "channel_id": channel_id,
+        "announced": False
+    }
+    events = load_events()
+    events.append(event)
+    save_events(events)
+
+async def event_checker(bot):
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        now = datetime.now()
+        events = load_events()
+        updated = False
+
+        for event in events:
+            event_time = datetime.fromisoformat(event["datetime"])
+            if not event.get("announced") and now >= event_time:
+                channel = bot.get_channel(event["channel_id"])
+                if channel:
+                    msg = (
+                        f"📢 **イベント通知** 📢\n"
+                        f"**{event['name']}**\n"
+                        f"{event['content']}\n"
+                        f"日時: {event_time.strftime('%m/%d %H:%M')}"
+                    )
+                    try:
+                        await channel.send(msg)
+                        event["announced"] = True
+                        updated = True
+                    except Exception as e:
+                        print(f"Failed to send event message: {e}")
+
+        if updated:
+            save_events(events)
+
+        await asyncio.sleep(60)  # 60秒ごとにチェック
+
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -99,6 +174,32 @@ async def create_timestamp(
     embed.add_field(name="TimeZone", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
 
+@bot.tree.command(name="addevent", description="イベントを登録します")
+@app_commands.describe(
+    month="month（1〜12）",
+    day="day（1〜31）",
+    hour="hour（0〜23）",
+    minute="min（0〜59）",
+    name="event_name",
+    content="event",
+    channel_id="channelID"
+)
+async def addevent(
+    interaction: discord.Interaction,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    name: str,
+    content: str,
+    channel_id: int
+):
+    try:
+        add_event(month, day, hour, minute, name, content, channel_id)
+        await interaction.response.send_message(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -109,7 +210,6 @@ async def on_message(message):
     native_lang = settings.get(user_id, "JA")
     other_lang = "EN" if native_lang != "EN" else "JA"
 
-    # DeepL APIへの直接呼び出しは削除し、translate関数だけ使うように修正
     target = other_lang
     translated = await translate(message.content, target)
 
@@ -141,5 +241,9 @@ async def on_raw_reaction_add(payload):
         await reply.delete()
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
+
+@bot.event
+async def on_connect():
+    bot.loop.create_task(event_checker(bot))
 
 bot.run(DISCORD_TOKEN)
