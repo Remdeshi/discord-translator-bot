@@ -15,22 +15,32 @@ def load_events():
             json.dump([], f, ensure_ascii=False, indent=2)
         return []
     
-    with open(EVENTS_FILE, "r", encoding="utf-8") as f:
-        return json.load(f)
+    try:
+        with open(EVENTS_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception as e:
+        print(f"Failed to load events: {e}")
+        return []
 
 def save_events(events):
-    with open(EVENTS_FILE, "w", encoding="utf-8") as f:
-        json.dump(events, f, ensure_ascii=False, indent=2)
+    try:
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(events, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Failed to save events: {e}")
 
 def add_event(month, day, hour, minute, name, content):
-    events = load_events()
-    event_datetime = datetime(datetime.now().year, month, day, hour, minute)
+    now = datetime.now()
+    event_datetime = datetime(now.year, month, day, hour, minute)
+    if event_datetime < now:
+        event_datetime = event_datetime.replace(year=now.year + 1)
     event = {
         "datetime": event_datetime.isoformat(),
         "name": name,
         "content": content,
         "announced": False
     }
+    events = load_events()
     events.append(event)
     save_events(events)
 
@@ -54,8 +64,10 @@ async def event_checker(bot, channel_id):
                     await channel.send(msg)
                     event["announced"] = True
                     updated = True
-        
+                else:
+                    print(f"Channel with ID {channel_id} not found.")
+
         if updated:
             save_events(events)
 
-        await asyncio.sleep(60)  # Check every minute
+        await asyncio.sleep(60)  # 1分ごとにチェック
