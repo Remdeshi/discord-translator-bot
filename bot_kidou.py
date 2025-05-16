@@ -97,7 +97,10 @@ def save_events(events):
 import pytz
 from datetime import datetime
 
-def add_event(month, day, hour, minute, name, content, channel_id):
+def add_event(month, day, hour, minute, name, content, channel_id, reminders=None):
+    if reminders is None:
+        reminders = [30, 20, 10]  # デフォルトは30分・20分・10分前通知
+
     tz = pytz.timezone("Asia/Tokyo")  # JST想定
     now = datetime.now(tz)
     event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
@@ -111,45 +114,71 @@ def add_event(month, day, hour, minute, name, content, channel_id):
         "name": name,
         "content": content,
         "channel_id": channel_id,
-        "announced": False
+        "announced": False,
+        "reminders": reminders,
+        "reminded": [False] * len(reminders)  # 各リマインダーが送信済みかどうか
     }
     events = load_events()
     events.append(event)
     save_events(events)
 
+
 async def event_checker(bot):
     await bot.wait_until_ready()
     while not bot.is_closed():
-        now = datetime.now(tz=pytz.UTC)  # UTC aware datetimeに修正
+        now = datetime.now(tz=pytz.UTC)  # UTC
         events = load_events()
         remaining_events = []
 
         for event in events:
             event_time = datetime.fromisoformat(event["datetime"])
+            channel = bot.get_channel(event["channel_id"])
+            if not channel:
+                print(f"Channel with ID {event['channel_id']} not found.")
+                remaining_events.append(event)
+                continue
+
+            # リマインダー通知処理
+            for i, minutes_before in enumerate(event.get("reminders", [])):
+                reminder_time = event_time - timedelta(minutes=minutes_before)
+                # 通知対象時間の1分間の猶予でチェック
+                if reminder_time <= now < reminder_time + timedelta(seconds=60):
+                    if not event["reminded"][i]:
+                        unix_timestamp = int(event_time.timestamp())
+                        msg = (
+                            f"⏰ イベント『{event['name']}』まであと{minutes_before}分です！\n"
+                            f"{event['content']}\n"
+                            f"日時: <t:{unix_timestamp}:F>"
+                        )
+                        try:
+                            await channel.send(msg)
+                            event["reminded"][i] = True  # 通知済みフラグON
+                        except Exception as e:
+                            print(f"Failed to send reminder: {e}")
+
+            # イベント本番通知
             if now >= event_time:
-                channel = bot.get_channel(event["channel_id"])
-                if channel:
-                    unix_timestamp = int(event_time.timestamp())  # ← UNIXタイムスタンプに変換
+                if not event["announced"]:
+                    unix_timestamp = int(event_time.timestamp())
                     msg = (
-                        f"📢 **イベント通知** 📢\n"
+                        f"📢 **イベント開始！** 📢\n"
                         f"**{event['name']}**\n"
                         f"{event['content']}\n"
                         f"日時: <t:{unix_timestamp}:F>"
                     )
                     try:
                         await channel.send(msg)
-                        continue
+                        event["announced"] = True
                     except Exception as e:
                         print(f"Failed to send event message: {e}")
-                else:
-                    print(f"Channel with ID {event['channel_id']} not found.")
+                # イベント完了なのでリストから除外
+                continue
             else:
                 remaining_events.append(event)
 
-        # 残ったイベントだけ保存
         save_events(remaining_events)
-
         await asyncio.sleep(60)
+
 
 @bot.event
 async def on_ready():
@@ -191,7 +220,8 @@ async def create_timestamp(
     minute="min（0〜59）",
     name="event_name",
     content="event",
-    channel="channel"
+    channel="channel",
+    reminders="通知する分前（カンマ区切り、例: 30,20,10）"  # 追加
 )
 async def addevent(
     interaction: discord.Interaction,
@@ -201,16 +231,29 @@ async def addevent(
     minute: int,
     name: str,
     content: str,
-    channel: TextChannel
+    channel: TextChannel,
+    reminders: str = None  # 追加
 ):
+    if reminders:
+        try:
+            reminder_list = [int(x.strip()) for x in reminders.split(",")]
+        except ValueError:
+            await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+            return
+    else:
+        reminder_list = [30, 20, 10]  # デフォルトのリマインダー
+
     try:
-        add_event(month, day, hour, minute, name, content, channel.id)
+        add_event(month, day, hour, minute, name, content, channel.id, reminder_list)
     except Exception as e:
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-        return  # ここで抜けるのがポイント
+        return
 
-    # 例外がなければ成功メッセージを送る
-    await interaction.response.send_message(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
+    await interaction.response.send_message(
+        f"✅ イベント「{name}」を登録しました！ 通知は {', '.join(map(str, reminder_list))} 分前に設定されました。", 
+        ephemeral=True
+    )
+
 
 
 @bot.tree.command(name="deleteevent", description="登録済みのイベントを削除します")
