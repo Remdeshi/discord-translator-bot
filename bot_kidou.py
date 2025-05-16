@@ -249,14 +249,13 @@ async def addevent(
         return
 
     if reminder_list:
-        reminder_msg = f" 通知は {', '.join(map(str, reminder_list))} 分前に設定されました。"
-    else:
-        reminder_msg = ""
+    reminder_msg = " 通知は " + "、".join(f"{m}分前" for m in reminder_list) + " に送信されます。"
+else:
+    reminder_msg = ""
 
-    await interaction.response.send_message(
-        f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
-    )
-
+await interaction.response.send_message(
+    f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
+)
 
 
 
