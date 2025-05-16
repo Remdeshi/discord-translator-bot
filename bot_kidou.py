@@ -67,8 +67,6 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
 
 Thread(target=start_flask, daemon=True).start()
 
-import aiohttp
-
 @bot.event
 async def on_ready():
     await bot.tree.sync()
@@ -111,25 +109,14 @@ async def on_message(message):
     native_lang = settings.get(user_id, "JA")
     other_lang = "EN" if native_lang != "EN" else "JA"
 
-    async with aiohttp.ClientSession() as session:
-        async with session.post(
-            "https://api-free.deepl.com/v2/translate",
-            data={
-                "auth_key": os.getenv("DEEPL_API_KEY"),
-                "text": message.content,
-                "target_lang": "EN"
-            }
-        ) as res:
-            if res.status != 200:
-                await message.channel.send("[翻訳エラー]")
-                return
+    # DeepL APIへの直接呼び出しは削除し、translate関数だけ使うように修正
+    target = other_lang
+    translated = await translate(message.content, target)
 
-            data = await res.json()
-            detected = data["translations"][0]["detected_source_language"]
-            target = other_lang if detected == native_lang else native_lang
-            translated = await translate(message.content, target)
-
-            await message.channel.send(translated)
+    if translated == "[翻訳エラー]":
+        await message.channel.send(translated)
+    else:
+        await message.channel.send(translated)
 
 @bot.event
 async def on_raw_reaction_add(payload):
