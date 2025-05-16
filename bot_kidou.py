@@ -201,13 +201,17 @@ async def addevent(
     minute: int,
     name: str,
     content: str,
-    channel: TextChannel  # ← 修正済み
+    channel: TextChannel
 ):
     try:
-        add_event(month, day, hour, minute, name, content, channel.id)  # ← channel_idではなくchannel.id
-        await interaction.response.send_message(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
+        add_event(month, day, hour, minute, name, content, channel.id)
     except Exception as e:
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+        return  # ここで抜けるのがポイント
+
+    # 例外がなければ成功メッセージを送る
+    await interaction.response.send_message(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
+
 
 @bot.tree.command(name="deleteevent", description="登録済みのイベントを削除します")
 @app_commands.describe(index="削除したいイベントの番号")
