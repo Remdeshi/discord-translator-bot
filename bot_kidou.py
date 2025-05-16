@@ -221,7 +221,7 @@ async def create_timestamp(
     name="event_name",
     content="event",
     channel="channel",
-    reminders="通知する分前（カンマ区切り、例: 30,20,10）"  # 追加
+    reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
 async def addevent(
     interaction: discord.Interaction,
@@ -232,16 +232,15 @@ async def addevent(
     name: str,
     content: str,
     channel: TextChannel,
-    reminders: str = None  # 追加
+    reminders: str = None
 ):
+    reminder_list = []
     if reminders:
         try:
             reminder_list = [int(x.strip()) for x in reminders.split(",")]
         except ValueError:
             await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
             return
-    else:
-        reminder_list = [30, 20, 10]  # デフォルトのリマインダー
 
     try:
         add_event(month, day, hour, minute, name, content, channel.id, reminder_list)
@@ -249,10 +248,15 @@ async def addevent(
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
         return
 
+    if reminder_list:
+        reminder_msg = f" 通知は {', '.join(map(str, reminder_list))} 分前に設定されました。"
+    else:
+        reminder_msg = ""
+
     await interaction.response.send_message(
-        f"✅ イベント「{name}」を登録しました！ 通知は {', '.join(map(str, reminder_list))} 分前に設定されました。", 
-        ephemeral=True
+        f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
     )
+
 
 
 
