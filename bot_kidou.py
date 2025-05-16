@@ -248,16 +248,16 @@ async def addevent(
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
         return
 
-    # リマインダーの表示メッセージを整える
-if reminder_list:
-    reminder_msg = " 通知は " + "、".join(f"{m}分前" for m in reminder_list) + " に送信されます。"
-else:
-    reminder_msg = ""
+    # 🔽🔽🔽 ここから下を関数内にインデント！
+    if reminder_list:
+        reminder_msg = " 通知は " + "、".join(f"{m}分前" for m in reminder_list) + " に送信されます。"
+    else:
+        reminder_msg = ""
 
-# ユーザーへの返信
-await interaction.response.send_message(
-    f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
-)
+    await interaction.response.send_message(
+        f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
+    )
+
 
 
 
