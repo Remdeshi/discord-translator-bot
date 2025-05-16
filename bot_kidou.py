@@ -199,6 +199,25 @@ async def addevent(
     except Exception as e:
         await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
 
+@bot.tree.command(name="deleteevent", description="登録済みのイベントを削除します")
+@app_commands.describe(index="削除したいイベントの番号")
+async def deleteevent(interaction: discord.Interaction, index: int):
+    events = load_events()
+    if not events:
+        await interaction.response.send_message("登録されているイベントはありません。", ephemeral=True)
+        return
+
+    if index < 1 or index > len(events):
+        await interaction.response.send_message("無効なイベント番号です。", ephemeral=True)
+        return
+
+    removed_event = events.pop(index - 1)
+    save_events(events)
+    await interaction.response.send_message(
+        f"✅ イベント「{removed_event.get('name', '無名イベント')}」を削除しました。", ephemeral=True
+    )
+
+
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
     events = load_events()
