@@ -2,9 +2,11 @@ import json
 import asyncio
 import os
 from datetime import datetime
+import pytz  # タイムゾーン用
 
 DATA_DIR = "data"
 EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
+JST = pytz.timezone("Asia/Tokyo")
 
 def load_events():
     if not os.path.exists(DATA_DIR):
@@ -30,11 +32,12 @@ def save_events(events):
         print(f"Failed to save events: {e}")
 
 def add_event(month, day, hour, minute, name, content, channel_id):
-    now = datetime.now()
-    event_datetime = datetime(now.year, month, day, hour, minute)
+    now = datetime.now(JST)
+    event_datetime = JST.localize(datetime(now.year, month, day, hour, minute))
     if event_datetime < now:
-        # 過去の日付なら翌年にずらす
+        # 過去なら翌年にずらす
         event_datetime = event_datetime.replace(year=now.year + 1)
+    
     event = {
         "datetime": event_datetime.isoformat(),
         "name": name,
@@ -48,18 +51,22 @@ def add_event(month, day, hour, minute, name, content, channel_id):
 
 async def event_checker(bot):
     while True:
-        now = datetime.now()
+        now = datetime.now(JST)
         events = load_events()
         updated = False
 
         for event in events:
             event_time = datetime.fromisoformat(event["datetime"])
+            # tzinfoがなければJSTをつける（念のため）
+            if event_time.tzinfo is None:
+                event_time = JST.localize(event_time)
+            
             if not event.get("announced") and now >= event_time:
                 channel_id = event.get("channel_id")
                 channel = bot.get_channel(channel_id) if channel_id else None
                 if channel:
                     msg = (
-                        f"📢 **Event Reminder** 📢\n"
+                        f"📢 **イベント通知** 📢\n"
                         f"**{event['name']}**\n"
                         f"{event['content']}\n"
                         f"Scheduled for: {event_time.strftime('%b %d %H:%M')}"
@@ -73,4 +80,4 @@ async def event_checker(bot):
         if updated:
             save_events(events)
 
-        await asyncio.sleep(60)  # 1分ごとにチェック
+        await asyncio.sleep(60)
