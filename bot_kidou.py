@@ -6,7 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 import json
-import aiohttp
+
 
 from discord import app_commands, TextChannel  # ← ここでTextChannelをimport
 from discord.ext import commands
@@ -310,6 +310,8 @@ async def listevents(interaction: discord.Interaction):
 
 
 # DM翻訳（通常テキスト）
+import aiohttp
+
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -320,20 +322,40 @@ async def on_message(message):
     native_lang = settings.get(user_id, "JA")
     other_lang = "EN" if native_lang != "EN" else "JA"
 
-    res = requests.post(DEEPL_API_URL, data={
+    url = "https://api-free.deepl.com/v2/translate"
+    params = {
         "auth_key": DEEPL_API_KEY,
         "text": message.content,
-        "target_lang": "EN"
-    })
-    if res.status_code != 200:
-        await message.channel.send("[翻訳エラー]")
-        return
+        "target_lang": "EN",  # とりあえずEN固定（あとで言語検出から切り替えも可）
+    }
 
-    detected = res.json()["translations"][0]["detected_source_language"]
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=params) as resp:
+            if resp.status != 200:
+                await message.channel.send("[翻訳エラー]")
+                return
+            data = await resp.json()
+
+    detected = data["translations"][0]["detected_source_language"]
     target = other_lang if detected == native_lang else native_lang
-    translated = translate(message.content, target)
+
+    # 再度翻訳（目的の言語に）
+    if target != detected:
+        params["target_lang"] = target
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=params) as resp:
+                if resp.status != 200:
+                    await message.channel.send("[翻訳エラー]")
+                    return
+                data = await resp.json()
+        translated = data["translations"][0]["text"]
+    else:
+        translated = message.content  # もし検出言語＝ターゲットなら翻訳不要
 
     await message.channel.send(translated)
+
+    await bot.process_commands(message)  # 忘れずに
+
 
 
 
