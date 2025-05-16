@@ -124,28 +124,28 @@ async def event_checker(bot):
         events = load_events()
         remaining_events = []
 
-        for event in events:
-            event_time = datetime.fromisoformat(event["datetime"])
-            if now >= event_time:
-                channel = bot.get_channel(event["channel_id"])
-                if channel:
-                    msg = (
-                        f"📢 **イベント通知** 📢\n"
-                        f"**{event['name']}**\n"
-                        f"{event['content']}\n"
-                        f"日時: {event_time.strftime('%m/%d %H:%M')} UTC"
-                    )
-                    try:
-                        await channel.send(msg)
-                        # 通知成功したら削除（=リストに残さない）
-                        continue
-                    except Exception as e:
-                        print(f"Failed to send event message: {e}")
-                else:
-                    print(f"Channel with ID {event['channel_id']} not found.")
-            else:
-                # まだ通知タイミングでないものは残す
-                remaining_events.append(event)
+ for event in events:
+    event_time = datetime.fromisoformat(event["datetime"])
+    if now >= event_time:
+        channel = bot.get_channel(event["channel_id"])
+        if channel:
+            unix_timestamp = int(event_time.timestamp())  # ← UNIXタイムスタンプに変換
+            msg = (
+                f"📢 **イベント通知** 📢\n"
+                f"**{event['name']}**\n"
+                f"{event['content']}\n"
+                f"日時: <t:{unix_timestamp}:F>（<t:{unix_timestamp}:R>）"  # ← タイムスタンプ形式
+            )
+            try:
+                await channel.send(msg)
+                continue
+            except Exception as e:
+                print(f"Failed to send event message: {e}")
+        else:
+            print(f"Channel with ID {event['channel_id']} not found.")
+    else:
+        remaining_events.append(event)
+
 
         # 残ったイベントだけ保存
         save_events(remaining_events)
