@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 import json
+import aiohttp
 
 from discord import app_commands, TextChannel  # ← ここでTextChannelをimport
 from discord.ext import commands
