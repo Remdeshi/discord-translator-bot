@@ -134,7 +134,7 @@ async def event_checker(bot):
                         f"📢 **イベント通知** 📢\n"
                         f"**{event['name']}**\n"
                         f"{event['content']}\n"
-                        f"日時: <t:{unix_timestamp}:F>（<t:{unix_timestamp}:R>）"  # ← タイムスタンプ形式
+                        f"日時: <t:{unix_timestamp}:F>"
                     )
                     try:
                         await channel.send(msg)
