@@ -236,6 +236,17 @@ async def create_timestamp(
     channel="channel",
     reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
+@bot.tree.command(name="addevent", description="イベントを登録します")
+@app_commands.describe(
+    month="month（1〜12）",
+    day="day（1〜31）",
+    hour="hour（0〜23）",
+    minute="min（0〜59）",
+    name="event_name",
+    content="event",
+    channel="channel",
+    reminders="通知する分前（カンマ区切り、例: 30,20,10）"
+)
 async def addevent(
     interaction: discord.Interaction,
     month: int,
@@ -257,16 +268,18 @@ async def addevent(
 
     await interaction.response.defer(ephemeral=True)
 
-print("リマインダー:", reminder_list)
-print("イベント登録前")
+    print("リマインダー:", reminder_list)
+    print("イベント登録前")
 
-try:
-    add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-    print("イベント登録成功")
-except Exception as e:
-    print(f"イベント登録失敗: {e}")
-    await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-    return
+    try:
+        add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
+        print("イベント登録成功")
+    except Exception as e:
+        print(f"イベント登録失敗: {e}")
+        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+        return
+
+    await interaction.followup.send(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
 
 
 async def deleteevent(interaction: discord.Interaction, index: int):
