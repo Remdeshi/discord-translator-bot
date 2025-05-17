@@ -255,7 +255,7 @@ async def addevent(
             await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
             return
 
-    await interaction.response.defer(ephemeral=True)  # ←ここも関数内
+    await interaction.response.defer(ephemeral=True)
 
     try:
         add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
@@ -268,12 +268,11 @@ async def addevent(
     else:
         reminder_msg = ""
 
- try:
+    try:
         await interaction.followup.send(f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True)
     except discord.errors.HTTPException as e:
         print(f"送信失敗: {e}")
-@bot.tree.command(name="deleteevent", description="登録済みのイベントを削除します")
-@app_commands.describe(index="削除したいイベントの番号")
+
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
     if not events:
