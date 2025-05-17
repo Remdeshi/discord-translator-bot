@@ -73,7 +73,7 @@ Thread(target=start_flask, daemon=True).start()
 DATA_DIR = "data"
 EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
 
-def load_events():
+def load_events(guild_id=None):
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
@@ -84,13 +84,21 @@ def load_events():
 
     try:
         with open(EVENTS_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
+            events = json.load(f)
+            if guild_id is not None:
+                events = [e for e in events if e.get("guild_id") == guild_id]
+            return events
     except Exception as e:
         print(f"Failed to load events: {e}")
         return []
 
-def save_events(events):
+
+def save_events(events, guild_id=None):
     try:
+        if guild_id is not None:
+            all_events = load_events()  # 全イベント読み込み
+            other_events = [e for e in all_events if e.get("guild_id") != guild_id]
+            events = other_events + events
         with open(EVENTS_FILE, "w", encoding="utf-8") as f:
             json.dump(events, f, ensure_ascii=False, indent=2)
     except Exception as e:
@@ -252,7 +260,7 @@ try:
 except Exception as e:
     await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
     return
-n
+
 
 
     # 🔽🔽🔽 ここから下を関数内にインデント！
