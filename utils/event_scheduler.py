@@ -33,27 +33,31 @@ def save_events(events, guild_id=None):
         print(f"Failed to save events: {e}")
 
 def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None):
+    if reminders is None:
+        reminders = [30, 20, 10]  # デフォルトリマインダー
+    
     now = datetime.now(JST)
     event_datetime = JST.localize(datetime(now.year, month, day, hour, minute))
     if event_datetime < now:
-        # 過去なら翌年にずらす
         event_datetime = event_datetime.replace(year=now.year + 1)
     
-# イベント定義の中に guild_id を追加する
-event = {
-    "datetime": event_datetime_utc.isoformat(),
-    "name": name,
-    "content": content,
-    "channel_id": channel_id,
-    "guild_id": guild_id,  # ←追加！
-    "announced": False,
-    "reminders": reminders,
-    "reminded": [False] * len(reminders)
-}
-
-    events = load_events()
+    event_datetime_utc = event_datetime.astimezone(pytz.UTC)  # UTCに変換
+    
+    event = {
+        "datetime": event_datetime_utc.isoformat(),
+        "name": name,
+        "content": content,
+        "channel_id": channel_id,
+        "guild_id": guild_id,
+        "announced": False,
+        "reminders": reminders,
+        "reminded": [False] * len(reminders),
+    }
+    
+    events = load_events(guild_id=guild_id)
     events.append(event)
-    save_events(events)
+    save_events(events, guild_id=guild_id)
+
 
 async def event_checker(bot):
     while True:
