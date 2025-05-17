@@ -261,19 +261,6 @@ async def addevent(
     channel: TextChannel,
     reminders: str = None
 ):
-    # ここから関数本体
-
-async def addevent(
-    interaction: discord.Interaction,
-    month: int,
-    day: int,
-    hour: int,
-    minute: int,
-    name: str,
-    content: str,
-    channel: TextChannel,
-    reminders: str = None
-):
     reminder_list = []
     if reminders:
         try:
