@@ -20,9 +20,9 @@ def load_events(guild_id=None):
     try:
         with open(EVENTS_FILE, "r", encoding="utf-8") as f:
             events = json.load(f)
-            if guild_id is not None:
-                events = [e for e in events if e.get("guild_id") == guild_id]
-            return events
+        if guild_id is not None:
+            events = [e for e in events if e.get("guild_id") == guild_id]
+        return events
     except Exception as e:
         print(f"Failed to load events: {e}")
         return []
