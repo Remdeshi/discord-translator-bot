@@ -255,15 +255,12 @@ async def addevent(
             await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
             return
 
-try:
-    add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-except Exception as e:
-    await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-    return
+    try:
+        add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
+    except Exception as e:
+        await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+        return
 
-
-
-    # 🔽🔽🔽 ここから下を関数内にインデント！
     if reminder_list:
         reminder_msg = " 通知は " + "、".join(f"{m}分前" for m in reminder_list) + " に送信されます。"
     else:
@@ -272,7 +269,6 @@ except Exception as e:
     await interaction.response.send_message(
         f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True
     )
-
 
 
 
