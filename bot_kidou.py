@@ -285,7 +285,9 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
-    events = load_events()
+    guild_id = interaction.guild.id  # サーバーのIDを取得
+    events = load_events(guild_id=guild_id)  # guild_idを指定して読み込み
+
     if not events:
         await interaction.response.send_message("登録されているイベントはありません。", ephemeral=True)
         return
