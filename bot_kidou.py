@@ -268,6 +268,7 @@ except Exception as e:
     await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
     return
 
+
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
     if not events:
