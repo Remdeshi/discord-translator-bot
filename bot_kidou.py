@@ -268,8 +268,11 @@ async def addevent(
     else:
         reminder_msg = ""
 
+try:
     await interaction.followup.send(f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True)
-
+except discord.errors.HTTPException as e:
+    # 例えばレートリミットで送れなかった時にログに出すなど
+    print(f"送信失敗: {e}")
 
 @bot.tree.command(name="deleteevent", description="登録済みのイベントを削除します")
 @app_commands.describe(index="削除したいイベントの番号")
