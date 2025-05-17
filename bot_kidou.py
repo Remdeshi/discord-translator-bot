@@ -247,6 +247,20 @@ async def addevent(
     channel: TextChannel,
     reminders: str = None
 ):
+    # 関数の処理をここに書く（必ずインデント）
+    pass  # ひとまず処理がなければこれを書いてエラーを防ぐ
+
+async def addevent(
+    interaction: discord.Interaction,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    name: str,
+    content: str,
+    channel: TextChannel,
+    reminders: str = None
+):
     # ここから関数本体
 
 async def addevent(
