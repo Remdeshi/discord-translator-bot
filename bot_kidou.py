@@ -257,21 +257,16 @@ async def addevent(
 
     await interaction.response.defer(ephemeral=True)
 
-    try:
-        add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-    except Exception as e:
-        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-        return
+print("リマインダー:", reminder_list)
+print("イベント登録前")
 
-    if reminder_list:
-        reminder_msg = " 通知は " + "、".join(f"{m}分前" for m in reminder_list) + " に送信されます。"
-    else:
-        reminder_msg = ""
-
-    try:
-        await interaction.followup.send(f"✅ イベント「{name}」を登録しました！{reminder_msg}", ephemeral=True)
-    except discord.errors.HTTPException as e:
-        print(f"送信失敗: {e}")
+try:
+    add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
+    print("イベント登録成功")
+except Exception as e:
+    print(f"イベント登録失敗: {e}")
+    await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+    return
 
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
