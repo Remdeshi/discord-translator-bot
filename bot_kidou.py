@@ -236,17 +236,19 @@ async def create_timestamp(
     channel="channel",
     reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
-@bot.tree.command(name="addevent", description="イベントを登録します")
-@app_commands.describe(
-    month="month（1〜12）",
-    day="day（1〜31）",
-    hour="hour（0〜23）",
-    minute="min（0〜59）",
-    name="event_name",
-    content="event",
-    channel="channel",
-    reminders="通知する分前（カンマ区切り、例: 30,20,10）"
-)
+async def addevent(
+    interaction: discord.Interaction,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    name: str,
+    content: str,
+    channel: TextChannel,
+    reminders: str = None
+):
+    # ここから関数本体
+
 async def addevent(
     interaction: discord.Interaction,
     month: int,
