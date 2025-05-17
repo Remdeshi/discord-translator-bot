@@ -99,30 +99,33 @@ def save_events(events):
 import pytz
 from datetime import datetime
 
-def add_event(month, day, hour, minute, name, content, channel_id, reminders=None):
+def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None):
     if reminders is None:
-        reminders = [30, 20, 10]  # デフォルトは30分・20分・10分前通知
+        reminders = [30, 20, 10]
 
-    tz = pytz.timezone("Asia/Tokyo")  # JST想定
+    tz = pytz.timezone("Asia/Tokyo")
     now = datetime.now(tz)
     event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
     if event_datetime < now:
         event_datetime = event_datetime.replace(year=now.year + 1)
 
-    event_datetime_utc = event_datetime.astimezone(pytz.UTC)  # UTCに変換
+    event_datetime_utc = event_datetime.astimezone(pytz.UTC)
 
     event = {
-        "datetime": event_datetime_utc.isoformat(),  # UTCで保存
+        "datetime": event_datetime_utc.isoformat(),
         "name": name,
         "content": content,
         "channel_id": channel_id,
+        "guild_id": guild_id,  # ここを追加！
         "announced": False,
         "reminders": reminders,
-        "reminded": [False] * len(reminders)  # 各リマインダーが送信済みかどうか
+        "reminded": [False] * len(reminders)
     }
-    events = load_events()
+
+    events = load_events(guild_id=guild_id)  # guild_id指定でロード
     events.append(event)
-    save_events(events)
+    save_events(events, guild_id=guild_id)  # guild_id指定で保存
+
 
 
 async def event_checker(bot):
