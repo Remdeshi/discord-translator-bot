@@ -9,6 +9,14 @@ EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
 JST = pytz.timezone("Asia/Tokyo")
 
 def load_events(guild_id=None):
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
+    if not os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        return []
+
     try:
         with open(EVENTS_FILE, "r", encoding="utf-8") as f:
             events = json.load(f)
