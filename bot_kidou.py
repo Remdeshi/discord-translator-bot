@@ -248,10 +248,11 @@ async def addevent(
             return
 
     try:
-        add_event(month, day, hour, minute, name, content, channel.id, reminder_list)
-    except Exception as e:
-        await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-        return
+    add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
+except Exception as e:
+    await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+    return
+
 
     # 🔽🔽🔽 ここから下を関数内にインデント！
     if reminder_list:
