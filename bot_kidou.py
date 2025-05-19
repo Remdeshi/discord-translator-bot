@@ -271,7 +271,6 @@ if reminder_list:
 await interaction.followup.send(
     f"✅ イベント「{name}」を登録しました！\n{reminder_text}",
     ephemeral=True
-)
 
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
