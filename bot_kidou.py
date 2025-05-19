@@ -260,7 +260,7 @@ async def addevent(
     channel: TextChannel,
     reminders: str = None,
     timezone: str = "JST"  # ← ここだけ変更！
-)
+):
     reminder_list = []
     if reminders:
         try:
