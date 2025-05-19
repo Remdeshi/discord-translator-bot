@@ -249,29 +249,30 @@ async def addevent(
     reminders: str = None
 ):
     reminder_list = []
-if reminders:
+    if reminders:
+        try:
+            reminder_list = [int(x.strip()) for x in reminders.split(",")]
+        except ValueError:
+            await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+            return
+
+    await interaction.response.defer(ephemeral=True)
+
     try:
-        reminder_list = [int(x.strip()) for x in reminders.split(",")]
-    except ValueError:
-        await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+        add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
+    except Exception as e:
+        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
         return
 
-await interaction.response.defer(ephemeral=True)
+    reminder_text = ""
+    if reminder_list:
+        reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
 
-try:
-    add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-except Exception as e:
-    await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-    return
+    await interaction.followup.send(
+        f"✅ イベント「{name}」を登録しました！\n{reminder_text}",
+        ephemeral=True
+    )
 
-reminder_text = ""
-if reminder_list:
-    reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
-
-await interaction.followup.send(
-    f"✅ イベント「{name}」を登録しました！\n{reminder_text}",
-    ephemeral=True
-)
 
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
