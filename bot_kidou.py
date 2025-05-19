@@ -259,8 +259,8 @@ async def addevent(
     content: str,
     channel: TextChannel,
     reminders: str = None,
-    timezone: app_commands.Choice[str] = app_commands.Choice(name="日本時間 (JST)", value="JST")
-):
+    timezone: str = "JST"  # ← ここだけ変更！
+)
     reminder_list = []
     if reminders:
         try:
