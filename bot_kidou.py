@@ -273,7 +273,10 @@ async def addevent(
         ephemeral=True
     )
 
+from discord import app_commands
 
+@bot.tree.command(name="deleteevent", description="指定したイベントを削除します")
+@app_commands.describe(index="削除するイベントの番号（/listevents で確認）")
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
     if not events:
@@ -289,6 +292,7 @@ async def deleteevent(interaction: discord.Interaction, index: int):
     await interaction.response.send_message(
         f"✅ イベント「{removed_event.get('name', '無名イベント')}」を削除しました。", ephemeral=True
     )
+
 
 
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
