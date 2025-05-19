@@ -237,41 +237,75 @@ async def create_timestamp(
     reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
 
-async def addevent(
-    interaction: discord.Interaction,
-    month: int,
-    day: int,
-    hour: int,
-    minute: int,
-    name: str,
-    content: str,
-    channel: TextChannel,
-    reminders: str = None
-):
-    reminder_list = []
-    if reminders:
+from discord import app_commands
+from discord.ext import commands
+from discord import TextChannel
+
+class MyCog(commands.Cog):
+    def __init__(self, bot):
+        self.bot = bot
+
+    @app_commands.command(name="addevent", description="イベント登録")
+    @app_commands.describe(
+        month="月 (1-12)",
+        day="日 (1-31)",
+        hour="時 (0-23)",
+        minute="分 (0-59)",
+        name="イベント名",
+        content="内容",
+        channel="送信先チャンネル",
+        reminders="リマインダー（例: 5,10）",
+        timezone="タイムゾーンを選択してください"
+    )
+    @app_commands.choices(
+        timezone=[
+            app_commands.Choice(name="日本時間 (JST)", value="JST"),
+            app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
+        ]
+    )
+    async def addevent(
+        self,
+        interaction: discord.Interaction,
+        month: int,
+        day: int,
+        hour: int,
+        minute: int,
+        name: str,
+        content: str,
+        channel: TextChannel,
+        reminders: str = None,
+        timezone: app_commands.Choice[str] = app_commands.Choice(name="日本時間 (JST)", value="JST")
+    ):
+        reminder_list = []
+        if reminders:
+            try:
+                reminder_list = [int(x.strip()) for x in reminders.split(",")]
+            except ValueError:
+                await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+                return
+
+        await interaction.response.defer(ephemeral=True)
+
         try:
-            reminder_list = [int(x.strip()) for x in reminders.split(",")]
-        except ValueError:
-            await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+            # timezone.valueで選択された値（"JST"か"UTC"）を渡す
+            add_event(
+                month, day, hour, minute, name, content, channel.id,
+                interaction.guild_id, reminder_list,
+                timezone=timezone.value
+            )
+        except Exception as e:
+            await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
             return
 
-    await interaction.response.defer(ephemeral=True)
+        reminder_text = ""
+        if reminder_list:
+            reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
 
-    try:
-        add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-    except Exception as e:
-        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-        return
+        await interaction.followup.send(
+            f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone.value}",
+            ephemeral=True
+        )
 
-    reminder_text = ""
-    if reminder_list:
-        reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
-
-    await interaction.followup.send(
-        f"✅ イベント「{name}」を登録しました！\n{reminder_text}",
-        ephemeral=True
-    )
 
 from discord import app_commands
 
