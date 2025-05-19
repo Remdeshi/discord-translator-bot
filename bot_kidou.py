@@ -228,20 +228,7 @@ async def create_timestamp(
 from discord import app_commands, TextChannel
 from discord.ext import commands
 
-@bot.tree.command(name="addevent", description="イベントを登録します")
-@app_commands.describe(
-    month="month（1〜12）",
-    day="day（1〜31）",
-    hour="hour（0〜23）",
-    minute="min（0〜59）",
-    name="event_name",
-    content="event",
-    channel="channel",
-    reminders="通知する分前（カンマ区切り、例: 30,20,10）"
-)
-from discord import app_commands
-from discord.ext import commands
-from discord import TextChannel
+from discord import app_commands, TextChannel
 import discord
 
 @bot.tree.command(name="addevent", description="イベントを登録します")
@@ -302,10 +289,6 @@ async def addevent(
         f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone.value}",
         ephemeral=True
     )
-
-
-
-from discord import app_commands
 
 @bot.tree.command(name="deleteevent", description="指定したイベントを削除します")
 @app_commands.describe(index="削除するイベントの番号（/listevents で確認）")
