@@ -331,7 +331,7 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)  # 最初に保留
+    await interaction.response.defer(ephemeral=True)
     guild_id = interaction.guild.id
     events = load_events(guild_id=guild_id)
 
@@ -341,20 +341,31 @@ async def listevents(interaction: discord.Interaction):
 
     embed = discord.Embed(title="登録イベント一覧", color=discord.Color.green())
     for i, event in enumerate(events, 1):
+        timezone = event.get("timezone", "JST")  # ここでタイムゾーン取得（なければJSTと仮定）
         dt = datetime.fromisoformat(event["datetime"])
-        unix_timestamp = int(dt.timestamp())
+
+        # UTCならdtはUTCとして扱い、JSTならJSTとして扱う想定
+        if timezone == "UTC":
+            # UTCとしてtimestampを計算
+            unix_timestamp = int(dt.replace(tzinfo=timezone_utc).timestamp())
+        else:
+            # JST (UTC+9) としてtimestampを計算
+            unix_timestamp = int(dt.replace(tzinfo=timezone_jst).timestamp())
+
+        timestamp_str = f"<t:{unix_timestamp}:F>"
+
         name = event.get("name", "無名イベント")
         content = event.get("content", "")
         channel_id = event.get("channel_id", 0)
-        timestamp_str = f"<t:{unix_timestamp}:F>"
 
         embed.add_field(
-            name=f"{i}. {name} - {timestamp_str}",
+            name=f"{i}. {name} - {timestamp_str} ({timezone})",
             value=f"内容: {content}\n送信先チャンネルID: {channel_id}",
             inline=False,
         )
 
-    await interaction.followup.send(embed=embed, ephemeral=True)  # 保留解除して送信
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
 
 
 
