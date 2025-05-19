@@ -225,6 +225,9 @@ async def create_timestamp(
     embed.add_field(name="TimeZone", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
 
+from discord import app_commands, TextChannel
+from discord.ext import commands
+
 @bot.tree.command(name="addevent", description="イベントを登録します")
 @app_commands.describe(
     month="month（1〜12）",
@@ -236,10 +239,8 @@ async def create_timestamp(
     channel="channel",
     reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
-
-from discord import app_commands
-from discord.ext import commands
-from discord import TextChannel
+async def addevent(interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, name: str, content: str, channel: TextChannel, reminders: str = None):
+    # 関数本体の処理を書く
 
 class MyCog(commands.Cog):
     def __init__(self, bot):
@@ -263,6 +264,9 @@ class MyCog(commands.Cog):
             app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
         ]
     )
+    async def addevent_in_cog(self, interaction: discord.Interaction, month: int, day: int, hour: int, minute: int, name: str, content: str, channel: TextChannel, reminders: str = None, timezone: str = "JST"):
+        # Cog内のコマンド処理を書く
+
     async def addevent(
         self,
         interaction: discord.Interaction,
