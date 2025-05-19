@@ -286,7 +286,7 @@ async def addevent(
         reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
 
     await interaction.followup.send(
-        f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone.value}",
+        f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone}",
         ephemeral=True
     )
 
