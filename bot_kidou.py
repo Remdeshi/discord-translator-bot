@@ -313,40 +313,58 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
-    guild_id = interaction.guild.id
+    guild = interaction.guild
+    guild_id = guild.id
     events = load_events(guild_id=guild_id)
 
     if not events:
         await interaction.followup.send("登録されているイベントはありません。", ephemeral=True)
         return
 
-    embed = discord.Embed(title="登録イベント一覧", color=discord.Color.green())
+    embed = discord.Embed(
+        title=f"登録イベント一覧 - サーバー: {guild.name}",
+        color=discord.Color.green()
+    )
+
+    timezone_jst = pytz.timezone("Asia/Tokyo")
+    timezone_utc = pytz.UTC
+
     for i, event in enumerate(events, 1):
-        timezone = event.get("timezone", "JST")  # ここでタイムゾーン取得（なければJSTと仮定）
+        timezone = event.get("timezone", "JST")
         dt = datetime.fromisoformat(event["datetime"])
 
-        # UTCならdtはUTCとして扱い、JSTならJSTとして扱う想定
         if timezone == "UTC":
-            # UTCとしてtimestampを計算
-            unix_timestamp = int(dt.replace(tzinfo=timezone_utc).timestamp())
+            dt = dt.replace(tzinfo=timezone_utc)
         else:
-            # JST (UTC+9) としてtimestampを計算
-            unix_timestamp = int(dt.replace(tzinfo=timezone_jst).timestamp())
+            dt = dt.replace(tzinfo=timezone_utc).astimezone(timezone_jst)
 
+        unix_timestamp = int(dt.timestamp())
         timestamp_str = f"<t:{unix_timestamp}:F>"
 
         name = event.get("name", "無名イベント")
         content = event.get("content", "")
         channel_id = event.get("channel_id", 0)
+        channel = interaction.guild.get_channel(channel_id)
+        channel_name = channel.name if channel else f"不明なチャンネル（ID: {channel_id}）"
+
+        reminders = event.get("reminders", [])
+        if reminders:
+            reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminders) + " にお知らせします。"
+        else:
+            reminder_text = "リマインダー設定なし"
 
         embed.add_field(
-            name=f"{i}. {name} - {timestamp_str} ({timezone})",
-            value=f"内容: {content}\n送信先チャンネルID: {channel_id}",
+            name=f"{i}. {name} - {timestamp_str}（{timezone}）",
+            value=(
+                f"📢 内容: {content}\n"
+                f"📡 チャンネル: {channel_name}\n"
+                f"🌍 タイムゾーン: {timezone}\n"
+                f"⏰ {reminder_text}"
+            ),
             inline=False,
         )
 
     await interaction.followup.send(embed=embed, ephemeral=True)
-
 
 
 
