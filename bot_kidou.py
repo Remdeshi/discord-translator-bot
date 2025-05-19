@@ -297,47 +297,31 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
-    guild = interaction.guild  # サーバーオブジェクト
-    guild_id = guild.id
+    await interaction.response.defer(ephemeral=True)  # 最初に保留
+    guild_id = interaction.guild.id
     events = load_events(guild_id=guild_id)
 
     if not events:
-        await interaction.response.send_message("登録されているイベントはありません。", ephemeral=True)
+        await interaction.followup.send("登録されているイベントはありません。", ephemeral=True)
         return
 
     embed = discord.Embed(title="登録イベント一覧", color=discord.Color.green())
-
     for i, event in enumerate(events, 1):
         dt = datetime.fromisoformat(event["datetime"])
         unix_timestamp = int(dt.timestamp())
         name = event.get("name", "無名イベント")
         content = event.get("content", "")
         channel_id = event.get("channel_id", 0)
-        reminders = event.get("reminders", [])
-
-        # チャンネル名取得（存在確認も兼ねる）
-        channel = guild.get_channel(channel_id)
-        if channel:
-            channel_display = f"{guild.name} の #{channel.name}"
-        else:
-            channel_display = f"不明なチャンネル（ID: {channel_id}）"
-
-        # リマインダー表示
-        if reminders:
-            reminders_text = "、".join(f"{r}分前" for r in reminders)
-            reminder_line = f"\n🔔 リマインダー: {reminders_text}"
-        else:
-            reminder_line = ""
-
         timestamp_str = f"<t:{unix_timestamp}:F>"
 
         embed.add_field(
             name=f"{i}. {name} - {timestamp_str}",
-            value=f"内容: {content}\n送信先: {channel_display}{reminder_line}",
+            value=f"内容: {content}\n送信先チャンネルID: {channel_id}",
             inline=False,
         )
 
-    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await interaction.followup.send(embed=embed, ephemeral=True)  # 保留解除して送信
+
 
 
 # DM翻訳（通常テキスト）
