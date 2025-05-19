@@ -284,7 +284,6 @@ async def addevent(
 
     await interaction.followup.send(f"✅ イベント「{name}」を登録しました！", ephemeral=True)
 
-
 async def deleteevent(interaction: discord.Interaction, index: int):
     events = load_events()
     if not events:
