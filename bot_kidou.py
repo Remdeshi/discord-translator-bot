@@ -275,7 +275,7 @@ async def addevent(
         add_event(
             month, day, hour, minute, name, content, channel.id,
             interaction.guild_id, reminder_list,
-            timezone=timezone.value
+            timezone=timezone
         )
     except Exception as e:
         await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
