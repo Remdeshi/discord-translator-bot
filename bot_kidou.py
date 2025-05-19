@@ -236,19 +236,6 @@ async def create_timestamp(
     channel="channel",
     reminders="通知する分前（カンマ区切り、例: 30,20,10）"
 )
-async def addevent(
-    interaction: discord.Interaction,
-    month: int,
-    day: int,
-    hour: int,
-    minute: int,
-    name: str,
-    content: str,
-    channel: TextChannel,
-    reminders: str = None
-):
-    # 関数の処理をここに書く（必ずインデント）
-    pass  # ひとまず処理がなければこれを書いてエラーを防ぐ
 
 async def addevent(
     interaction: discord.Interaction,
@@ -271,14 +258,9 @@ async def addevent(
 
     await interaction.response.defer(ephemeral=True)
 
-    print("リマインダー:", reminder_list)
-    print("イベント登録前")
-
     try:
         add_event(month, day, hour, minute, name, content, channel.id, interaction.guild_id, reminder_list)
-        print("イベント登録成功")
     except Exception as e:
-        print(f"イベント登録失敗: {e}")
         await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
         return
 
