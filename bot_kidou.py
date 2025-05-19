@@ -107,11 +107,18 @@ def save_events(events, guild_id=None):
 import pytz
 from datetime import datetime
 
-def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None):
+def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None, timezone="JST"):
     if reminders is None:
         reminders = [30, 20, 10]
 
-    tz = pytz.timezone("Asia/Tokyo")
+    # タイムゾーンを取得
+    if timezone == "JST":
+        tz = pytz.timezone("Asia/Tokyo")
+    elif timezone == "UTC":
+        tz = pytz.UTC
+    else:
+        tz = pytz.UTC  # デフォルトでUTC
+
     now = datetime.now(tz)
     event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
     if event_datetime < now:
@@ -124,15 +131,15 @@ def add_event(month, day, hour, minute, name, content, channel_id, guild_id, rem
         "name": name,
         "content": content,
         "channel_id": channel_id,
-        "guild_id": guild_id,  # ここを追加！
+        "guild_id": guild_id,
         "announced": False,
         "reminders": reminders,
         "reminded": [False] * len(reminders)
     }
 
-    events = load_events(guild_id=guild_id)  # guild_id指定でロード
+    events = load_events(guild_id=guild_id)
     events.append(event)
-    save_events(events, guild_id=guild_id)  # guild_id指定で保存
+    save_events(events, guild_id=guild_id)
 
 
 
