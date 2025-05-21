@@ -108,16 +108,17 @@ import pytz
 from datetime import datetime
 
 def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None, timezone="JST"):
+    print("🟢 add_event 開始")
+
     if reminders is None:
         reminders = [30, 20, 10]
 
-    # タイムゾーンを取得
     if timezone == "JST":
         tz = pytz.timezone("Asia/Tokyo")
     elif timezone == "UTC":
         tz = pytz.UTC
     else:
-        tz = pytz.UTC  # デフォルトでUTC
+        tz = pytz.UTC
 
     now = datetime.now(tz)
     event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
@@ -137,9 +138,16 @@ def add_event(month, day, hour, minute, name, content, channel_id, guild_id, rem
         "reminded": [False] * len(reminders)
     }
 
+    print("🟡 load_events 呼び出し")
     events = load_events(guild_id=guild_id)
+    print("🟢 load_events 完了")
+
     events.append(event)
+
+    print("🟡 save_events 呼び出し")
     save_events(events, guild_id=guild_id)
+    print("🟢 save_events 完了")
+
 
 
 
