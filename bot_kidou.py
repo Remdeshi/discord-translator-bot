@@ -208,10 +208,19 @@ async def event_checker(bot):
         await asyncio.sleep(60)
 
 
+def ensure_data_files():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    if not os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+
 @bot.event
 async def on_ready():
+    ensure_data_files()          # ここで初期化処理を呼ぶ
     await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
+
 
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
