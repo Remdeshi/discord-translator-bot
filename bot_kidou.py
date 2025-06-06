@@ -372,17 +372,21 @@ async def listevents(interaction: discord.Interaction):
         color=discord.Color.green()
     )
 
+    from dateutil import parser
+    import pytz
     timezone_jst = pytz.timezone("Asia/Tokyo")
     timezone_utc = pytz.UTC
 
     for i, event in enumerate(events, 1):
-        timezone = event.get("timezone", "JST")
-        dt = datetime.fromisoformat(event["datetime"])
+        dt = parser.isoparse(event["datetime"])  # 文字列を日時オブジェクトに変換
 
-        if timezone == "UTC":
+        if dt.tzinfo is None:
+            # もし日時にタイムゾーンが無かったらUTCとして扱う
             dt = dt.replace(tzinfo=timezone_utc)
-        else:
-            dt = dt.replace(tzinfo=timezone_utc).astimezone(timezone_jst)
+
+        if event.get("timezone", "JST") == "JST":
+            # JST表示したいなら、日本時間に変換
+            dt = dt.astimezone(timezone_jst)
 
         unix_timestamp = int(dt.timestamp())
         timestamp_str = f"<t:{unix_timestamp}:F>"
@@ -390,7 +394,7 @@ async def listevents(interaction: discord.Interaction):
         name = event.get("name", "無名イベント")
         content = event.get("content", "")
         channel_id = event.get("channel_id", 0)
-        channel = interaction.guild.get_channel(channel_id)
+        channel = guild.get_channel(channel_id)
         channel_name = channel.name if channel else f"不明なチャンネル（ID: {channel_id}）"
 
         reminders = event.get("reminders", [])
@@ -398,6 +402,8 @@ async def listevents(interaction: discord.Interaction):
             reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminders) + " にお知らせします。"
         else:
             reminder_text = "リマインダー設定なし"
+
+        timezone = event.get("timezone", "JST")
 
         embed.add_field(
             name=f"{i}. {name} - {timestamp_str}（{timezone}）",
@@ -411,6 +417,7 @@ async def listevents(interaction: discord.Interaction):
         )
 
     await interaction.followup.send(embed=embed, ephemeral=True)
+
 
 
 
