@@ -358,65 +358,76 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
-    guild = interaction.guild
-    guild_id = guild.id
-    events = load_events(guild_id=guild_id)
+    try:
+        await interaction.response.defer(ephemeral=True)  # なるべく最初に呼ぶ
 
-    if not events:
-        await interaction.followup.send("登録されているイベントはありません。", ephemeral=True)
-        return
+        guild = interaction.guild
+        guild_id = guild.id
+        events = load_events(guild_id=guild_id)
 
-    embed = discord.Embed(
-        title=f"登録イベント一覧 - サーバー: {guild.name}",
-        color=discord.Color.green()
-    )
+        if not events:
+            await interaction.followup.send("登録されているイベントはありません。", ephemeral=True)
+            return
 
-    from dateutil import parser
-    import pytz
-    timezone_jst = pytz.timezone("Asia/Tokyo")
-    timezone_utc = pytz.UTC
-
-    for i, event in enumerate(events, 1):
-        dt = parser.isoparse(event["datetime"])  # 文字列を日時オブジェクトに変換
-
-        if dt.tzinfo is None:
-            # もし日時にタイムゾーンが無かったらUTCとして扱う
-            dt = dt.replace(tzinfo=timezone_utc)
-
-        if event.get("timezone", "JST") == "JST":
-            # JST表示したいなら、日本時間に変換
-            dt = dt.astimezone(timezone_jst)
-
-        unix_timestamp = int(dt.timestamp())
-        timestamp_str = f"<t:{unix_timestamp}:F>"
-
-        name = event.get("name", "無名イベント")
-        content = event.get("content", "")
-        channel_id = event.get("channel_id", 0)
-        channel = guild.get_channel(channel_id)
-        channel_name = channel.name if channel else f"不明なチャンネル（ID: {channel_id}）"
-
-        reminders = event.get("reminders", [])
-        if reminders:
-            reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminders) + " にお知らせします。"
-        else:
-            reminder_text = "リマインダー設定なし"
-
-        timezone = event.get("timezone", "JST")
-
-        embed.add_field(
-            name=f"{i}. {name} - {timestamp_str}（{timezone}）",
-            value=(
-                f"📢 内容: {content}\n"
-                f"📡 チャンネル: {channel_name}\n"
-                f"🌍 タイムゾーン: {timezone}\n"
-                f"⏰ {reminder_text}"
-            ),
-            inline=False,
+        embed = discord.Embed(
+            title=f"登録イベント一覧 - サーバー: {guild.name}",
+            color=discord.Color.green()
         )
 
-    await interaction.followup.send(embed=embed, ephemeral=True)
+        from dateutil import parser
+        import pytz
+        timezone_jst = pytz.timezone("Asia/Tokyo")
+        timezone_utc = pytz.UTC
+
+        for i, event in enumerate(events, 1):
+            dt = parser.isoparse(event["datetime"])  # 文字列を日時オブジェクトに変換
+
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=timezone_utc)
+
+            if event.get("timezone", "JST") == "JST":
+                dt = dt.astimezone(timezone_jst)
+
+            unix_timestamp = int(dt.timestamp())
+            timestamp_str = f"<t:{unix_timestamp}:F>"
+
+            name = event.get("name", "無名イベント")
+            content = event.get("content", "")
+            channel_id = event.get("channel_id", 0)
+            channel = guild.get_channel(channel_id)
+            channel_name = channel.name if channel else f"不明なチャンネル（ID: {channel_id}）"
+
+            reminders = event.get("reminders", [])
+            if reminders:
+                reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminders) + " にお知らせします。"
+            else:
+                reminder_text = "リマインダー設定なし"
+
+            timezone = event.get("timezone", "JST")
+
+            embed.add_field(
+                name=f"{i}. {name} - {timestamp_str}（{timezone}）",
+                value=(
+                    f"📢 内容: {content}\n"
+                    f"📡 チャンネル: {channel_name}\n"
+                    f"🌍 タイムゾーン: {timezone}\n"
+                    f"⏰ {reminder_text}"
+                ),
+                inline=False,
+            )
+
+        await interaction.followup.send(embed=embed, ephemeral=True)
+
+    except Exception as e:
+        # エラー発生時はログを出してユーザーにも通知
+        import traceback
+        tb = traceback.format_exc()
+        print(f"Error in listevents: {tb}")
+        if not interaction.response.is_done():
+            await interaction.response.send_message("エラーが発生しました。", ephemeral=True)
+        else:
+            await interaction.followup.send("エラーが発生しました。", ephemeral=True)
+
 
 
 
