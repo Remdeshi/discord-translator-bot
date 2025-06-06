@@ -249,8 +249,6 @@ async def create_timestamp(
     embed.add_field(name="TimeZone", value=timezone.name, inline=False)
     await interaction.response.send_message(embed=embed)
 
-from discord import app_commands, TextChannel
-from discord.ext import commands
 
 from discord import app_commands, TextChannel
 import discord
@@ -306,6 +304,21 @@ async def addevent(
             timezone=timezone
         )
         print("🟢 add_event 実行完了")
+       # ✅✅✅ ここから追加してください ✅✅✅
+        event_data = {
+            "name": name,
+            "content": content,
+            "channel_id": channel.id,
+            "guild_id": interaction.guild_id,
+            "author": interaction.user.name,
+            "reminders": reminder_list,
+            "timezone": timezone,
+            "timestamp": datetime.datetime.now().isoformat(),  # 登録時刻
+            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
+        }
+        save_event(event_data)  # ← ファイルに保存
+
+        # ✅✅✅ ここまで追加 ✅✅✅  
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
         await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
