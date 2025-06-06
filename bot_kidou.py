@@ -283,28 +283,23 @@ async def addevent(
     reminders: str = None,
     timezone: str = "JST"
 ):
-    print("🟢 /addevent 実行開始")
-    reminder_list = []
-    if reminders:
-        try:
-            reminder_list = [int(x.strip()) for x in reminders.split(",")]
-        except ValueError:
-            await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
-            return
-
-    print("🟢 interaction.response.defer 開始")
-    await interaction.response.defer(ephemeral=True)
-    print("🟢 interaction.response.defer 完了")
-
     try:
-        print("🟡 add_event 実行開始")
+        await interaction.response.defer(ephemeral=True)  # まずdefer
+
+        reminder_list = []
+        if reminders:
+            try:
+                reminder_list = [int(x.strip()) for x in reminders.split(",")]
+            except ValueError:
+                await interaction.followup.send("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+                return
+
         add_event(
             month, day, hour, minute, name, content, channel.id,
             interaction.guild_id, reminder_list,
             timezone=timezone
         )
-        print("🟢 add_event 実行完了")
-       # ✅✅✅ ここから追加してください ✅✅✅
+
         event_data = {
             "name": name,
             "content": content,
@@ -313,27 +308,27 @@ async def addevent(
             "author": interaction.user.name,
             "reminders": reminder_list,
             "timezone": timezone,
-            "timestamp": datetime.datetime.now().isoformat(),  # 登録時刻
+            "timestamp": datetime.datetime.now().isoformat(),
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
-        save_event(event_data)  # ← ファイルに保存
+        save_event(event_data)
 
-        # ✅✅✅ ここまで追加 ✅✅✅  
+        reminder_text = ""
+        if reminder_list:
+            reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
+
+        await interaction.followup.send(
+            f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone}",
+            ephemeral=True
+        )
+
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
-        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
-        return
+        if not interaction.response.is_done():
+            await interaction.response.send_message(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+        else:
+            await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
 
-    reminder_text = ""
-    if reminder_list:
-        reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
-
-    print("🟢 followup.send 実行開始")
-    await interaction.followup.send(
-        f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone}",
-        ephemeral=True
-    )
-    print("✅ /addevent 完了")
 
 
 @bot.tree.command(name="deleteevent", description="指定したイベントを削除します")
