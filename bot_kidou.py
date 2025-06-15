@@ -272,8 +272,7 @@ async def create_timestamp(
         app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
     ]
 )
-from datetime import datetime
-from discord import TextChannel
+
 
 async def addevent(
     interaction: discord.Interaction,
