@@ -316,7 +316,7 @@ async def addevent(
             "timestamp": datetime.datetime.now().isoformat(),  # 登録時刻
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
-        save_event(event_data)  # ← ファイルに保存
+        save_events(event_data)  # ← ファイルに保存
 
         # ✅✅✅ ここまで追加 ✅✅✅  
     except Exception as e:
