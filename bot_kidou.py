@@ -373,9 +373,20 @@ async def deleteevent(interaction: discord.Interaction, index: int):
 
 
 
+from datetime import datetime
+import pytz
+import discord
+from discord import app_commands
+from discord.ext import commands
+
 @bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
 async def listevents(interaction: discord.Interaction):
-    await interaction.response.defer(ephemeral=True)
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except discord.NotFound:
+        # Interactionが古くて無効な場合
+        return
+
     guild = interaction.guild
     guild_id = guild.id
     events = load_events(guild_id=guild_id)
@@ -393,9 +404,17 @@ async def listevents(interaction: discord.Interaction):
     timezone_utc = pytz.UTC
 
     for i, event in enumerate(events, 1):
-        timezone = event.get("timezone", "JST")
-        dt = datetime.fromisoformat(event["datetime"])
+        # 日時情報が存在しないイベントはスキップ
+        datetime_str = event.get("datetime")
+        if not datetime_str:
+            continue
 
+        try:
+            dt = datetime.fromisoformat(datetime_str)
+        except Exception as e:
+            continue  # パースできない日時はスキップ
+
+        timezone = event.get("timezone", "JST")
         if timezone == "UTC":
             dt = dt.replace(tzinfo=timezone_utc)
         else:
@@ -428,7 +447,6 @@ async def listevents(interaction: discord.Interaction):
         )
 
     await interaction.followup.send(embed=embed, ephemeral=True)
-
 
 
 # DM翻訳（通常テキスト）
