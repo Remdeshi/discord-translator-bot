@@ -271,6 +271,9 @@ import discord
         app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
     ]
 )
+from datetime import datetime
+from discord import TextChannel
+
 async def addevent(
     interaction: discord.Interaction,
     month: int,
@@ -284,17 +287,23 @@ async def addevent(
     timezone: str = "JST"
 ):
     print("🟢 /addevent 実行開始")
+
+    # 先に defer を呼ぶ（3秒以内にレスポンス開始をDiscordに通知）
+    print("🟢 interaction.response.defer 開始")
+    await interaction.response.defer(ephemeral=True)
+    print("🟢 interaction.response.defer 完了")
+
+    # リマインダーのパース（defer後なら時間かかっても安全）
     reminder_list = []
     if reminders:
         try:
             reminder_list = [int(x.strip()) for x in reminders.split(",")]
         except ValueError:
-            await interaction.response.send_message("リマインダーはカンマ区切りの数字で指定してください。", ephemeral=True)
+            await interaction.followup.send(
+                "リマインダーはカンマ区切りの数字で指定してください。",
+                ephemeral=True
+            )
             return
-
-    print("🟢 interaction.response.defer 開始")
-    await interaction.response.defer(ephemeral=True)
-    print("🟢 interaction.response.defer 完了")
 
     try:
         print("🟡 add_event 実行開始")
@@ -304,7 +313,7 @@ async def addevent(
             timezone=timezone
         )
         print("🟢 add_event 実行完了")
-       # ✅✅✅ ここから追加してください ✅✅✅
+
         event_data = {
             "name": name,
             "content": content,
@@ -316,12 +325,14 @@ async def addevent(
             "timestamp": datetime.now().isoformat(),
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
-        save_events(event_data)  # ← ファイルに保存
+        save_events(event_data)  # ファイルに保存
 
-        # ✅✅✅ ここまで追加 ✅✅✅  
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
-        await interaction.followup.send(f"❌ イベント登録に失敗しました: {e}", ephemeral=True)
+        await interaction.followup.send(
+            f"❌ イベント登録に失敗しました: {e}",
+            ephemeral=True
+        )
         return
 
     reminder_text = ""
@@ -334,6 +345,7 @@ async def addevent(
         ephemeral=True
     )
     print("✅ /addevent 完了")
+
 
 
 @bot.tree.command(name="deleteevent", description="指定したイベントを削除します")
