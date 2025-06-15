@@ -328,9 +328,7 @@ async def addevent(
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
 
-        events = load_events(guild_id=interaction.guild_id)
-        events.append(event_data)
-        save_events(events, guild_id=interaction.guild_id)
+
 
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
