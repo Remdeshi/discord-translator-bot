@@ -325,7 +325,11 @@ async def addevent(
             "timestamp": datetime.now().isoformat(),
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
-        save_events(event_data)  # ファイルに保存
+
+        # ここで既存イベントを読み込み、イベントを追加して保存
+        events = load_events(guild_id=interaction.guild_id)  # 既存イベント取得
+        events.append(event_data)  # 新規イベントを追加
+        save_events(events, guild_id=interaction.guild_id)  # ファイルに保存
 
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
