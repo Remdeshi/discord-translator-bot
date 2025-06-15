@@ -323,6 +323,7 @@ async def addevent(
             "reminders": reminder_list,
             "timezone": timezone,
             "timestamp": datetime.now().isoformat(),
+            "datetime": event_datetime.isoformat(),  # ここが重要！
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
 
