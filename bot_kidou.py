@@ -274,6 +274,7 @@ async def create_timestamp(
 )
 
 
+@bot.tree.command(name="addevent", description="新しいイベントを登録します")
 async def addevent(
     interaction: discord.Interaction,
     month: int,
@@ -288,12 +289,12 @@ async def addevent(
 ):
     print("🟢 /addevent 実行開始")
 
-    # 先に defer を呼ぶ（3秒以内にレスポンス開始をDiscordに通知）
+    # Discordに応答を保留（3秒以内）
     print("🟢 interaction.response.defer 開始")
     await interaction.response.defer(ephemeral=True)
     print("🟢 interaction.response.defer 完了")
 
-    # リマインダーのパース（defer後なら時間かかっても安全）
+    # リマインダーのパース
     reminder_list = []
     if reminders:
         try:
@@ -314,6 +315,19 @@ async def addevent(
         )
         print("🟢 add_event 実行完了")
 
+        # イベントの日時を作成
+        import pytz
+        from datetime import datetime
+
+        if timezone.upper() == "UTC":
+            tz = pytz.UTC
+        else:
+            tz = pytz.timezone("Asia/Tokyo")
+
+        now = datetime.now(tz)
+        year = now.year
+        event_datetime = tz.localize(datetime(year, month, day, hour, minute))
+
         event_data = {
             "name": name,
             "content": content,
@@ -323,15 +337,13 @@ async def addevent(
             "reminders": reminder_list,
             "timezone": timezone,
             "timestamp": datetime.now().isoformat(),
-            "datetime": event_datetime.isoformat(),  # ここが重要！
-            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
-            "datetime": event_datetime.isoformat(),  # ここが重要！
+            "datetime": event_datetime.isoformat(),  # ← これでOK
+            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"  # ← カンマもある
         }
 
-        # ここで既存イベントを読み込み、イベントを追加して保存
-        events = load_events(guild_id=interaction.guild_id)  # 既存イベント取得
-        events.append(event_data)  # 新規イベントを追加
-        save_events(events, guild_id=interaction.guild_id)  # ファイルに保存
+        events = load_events(guild_id=interaction.guild_id)
+        events.append(event_data)
+        save_events(events, guild_id=interaction.guild_id)
 
     except Exception as e:
         print(f"🔴 add_event 例外: {e}")
