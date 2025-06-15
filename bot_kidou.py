@@ -6,6 +6,8 @@ from datetime import datetime, timedelta
 import pytz
 from dotenv import load_dotenv
 import json
+from discord import app_commands, TextChannel
+
 
 
 from discord import app_commands, TextChannel  # ← ここでTextChannelをimport
@@ -250,8 +252,7 @@ async def create_timestamp(
     await interaction.response.send_message(embed=embed)
 
 
-from discord import app_commands, TextChannel
-import discord
+
 
 @bot.tree.command(name="addevent", description="イベントを登録します")
 @app_commands.describe(
