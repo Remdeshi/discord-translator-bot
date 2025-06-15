@@ -325,6 +325,7 @@ async def addevent(
             "timestamp": datetime.now().isoformat(),
             "datetime": event_datetime.isoformat(),  # ここが重要！
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
+            "datetime": event_datetime.isoformat(),  # ここが重要！
         }
 
         # ここで既存イベントを読み込み、イベントを追加して保存
