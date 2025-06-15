@@ -313,7 +313,7 @@ async def addevent(
             "author": interaction.user.name,
             "reminders": reminder_list,
             "timezone": timezone,
-            "timestamp": datetime.datetime.now().isoformat(),  # 登録時刻
+            "timestamp": datetime.now().isoformat(),
             "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
         save_events(event_data)  # ← ファイルに保存
