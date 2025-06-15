@@ -252,8 +252,6 @@ async def create_timestamp(
     await interaction.response.send_message(embed=embed)
 
 
-
-
 @bot.tree.command(name="addevent", description="イベントを登録します")
 @app_commands.describe(
     month="month（1〜12）",
@@ -272,9 +270,6 @@ async def create_timestamp(
         app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
     ]
 )
-
-
-@bot.tree.command(name="addevent", description="新しいイベントを登録します")
 async def addevent(
     interaction: discord.Interaction,
     month: int,
@@ -289,12 +284,10 @@ async def addevent(
 ):
     print("🟢 /addevent 実行開始")
 
-    # Discordに応答を保留（3秒以内）
-    print("🟢 interaction.response.defer 開始")
+    # defer
     await interaction.response.defer(ephemeral=True)
-    print("🟢 interaction.response.defer 完了")
 
-    # リマインダーのパース
+    # reminders parse
     reminder_list = []
     if reminders:
         try:
@@ -307,17 +300,11 @@ async def addevent(
             return
 
     try:
-        print("🟡 add_event 実行開始")
         add_event(
             month, day, hour, minute, name, content, channel.id,
             interaction.guild_id, reminder_list,
             timezone=timezone
         )
-        print("🟢 add_event 実行完了")
-
-        # イベントの日時を作成
-        import pytz
-        from datetime import datetime
 
         if timezone.upper() == "UTC":
             tz = pytz.UTC
@@ -336,9 +323,9 @@ async def addevent(
             "author": interaction.user.name,
             "reminders": reminder_list,
             "timezone": timezone,
-            "timestamp": datetime.now().isoformat(),
-            "datetime": event_datetime.isoformat(),  # ← これでOK
-            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"  # ← カンマもある
+            "timestamp": datetime.now(tz).isoformat(),
+            "datetime": event_datetime.isoformat(),
+            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
         }
 
         events = load_events(guild_id=interaction.guild_id)
@@ -357,7 +344,6 @@ async def addevent(
     if reminder_list:
         reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
 
-    print("🟢 followup.send 実行開始")
     await interaction.followup.send(
         f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone}",
         ephemeral=True
