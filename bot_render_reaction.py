@@ -1,109 +1,26 @@
 import os
-import json
 import discord
-import requests
 import asyncio
-from flask import Flask, request
 from threading import Thread
-from datetime import datetime
-from dotenv import load_dotenv
+from datetime import datetime, timedelta
 import pytz
+from dotenv import load_dotenv
+import json
+from discord import app_commands, TextChannel
 
-from discord import app_commands  # ← ★ これを追加
+
+
+from discord import app_commands, TextChannel  # ← ここでTextChannelをimport
 from discord.ext import commands
 
-# ==== 環境変数読み込み ====
+from utils.translate import translate
+from utils.lang_settings import load_lang_settings, save_lang_settings
+from web.uptime_server import start_flask
+
 load_dotenv()
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
-DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")
-DEEPL_API_URL = "https://api-free.deepl.com/v2/translate"
+DEEPL_API_KEY = os.getenv("DEEPL_API_KEY")  # ← ここに書く！
 
-# ==== Flask アプリ設定 ====
-app = Flask(__name__)
-CHAR_COUNT_FILE = "char_count.json"
-LAST_PING_FILE = "/tmp/last_ping.txt"
-PING_LOG_FILE = "/tmp/ping_log.txt"
-
-def start_flask():
-    @app.route("/", methods=["GET", "HEAD"])
-    def ping():
-        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-        if request.method == "HEAD":
-            print(f"📡 HEADリクエスト受信（更新スキップ）: {now}")
-            return "", 200
-        with open(LAST_PING_FILE, "w") as f:
-            f.write(now)
-        with open(PING_LOG_FILE, "a", encoding="utf-8") as f:
-            f.write(f"[{now}] UptimeRobot : 正常\n")
-        print(f"📡 GETリクエストでPing更新: {now}")
-        return "OK", 200
-
-    @app.route("/last_ping", methods=["GET"])
-    def get_last_ping():
-        if os.path.exists(LAST_PING_FILE):
-            with open(LAST_PING_FILE, "r") as f:
-                return {"last_ping": f.read().strip()}, 200
-        return {"last_ping": "まだ受信なし"}, 200
-
-    @app.route("/char_count", methods=["GET"])
-    def get_char_count():
-        if os.path.exists(CHAR_COUNT_FILE):
-            with open(CHAR_COUNT_FILE, "r", encoding="utf-8") as f:
-                return json.load(f), 200
-        return {"count": 0, "month": "unknown"}, 200
-
-    @app.route("/ping_log", methods=["GET"])
-    def get_ping_log():
-        if os.path.exists(PING_LOG_FILE):
-            with open(PING_LOG_FILE, "r", encoding="utf-8") as f:
-                lines = f.readlines()
-            return {"log": "".join(lines[-10:])}, 200
-        return {"log": "ログが存在しません"}, 200
-
-    app.run(host="0.0.0.0", port=8080)
-
-Thread(target=start_flask, daemon=True).start()
-
-# ==== 翻訳・文字数管理 ====
-def update_char_count(add_count: int):
-    current_month = datetime.now().strftime("%Y-%m")
-    data = {"count": 0, "month": current_month}
-
-    if os.path.exists(CHAR_COUNT_FILE):
-        with open(CHAR_COUNT_FILE, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if data.get("month") != current_month:
-            data = {"count": 0, "month": current_month}
-
-    data["count"] += add_count
-    with open(CHAR_COUNT_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-def translate(text, target_lang):
-    response = requests.post(DEEPL_API_URL, data={
-        "auth_key": DEEPL_API_KEY,
-        "text": text,
-        "target_lang": target_lang
-    })
-    if response.status_code == 200:
-        update_char_count(len(text))
-        return response.json()["translations"][0]["text"]
-    return "[翻訳エラー]"
-
-# ==== 言語設定 ====
-LANG_FILE = "user_lang.json"
-
-def load_lang_settings():
-    if os.path.exists(LANG_FILE):
-        with open(LANG_FILE, "r", encoding="utf-8") as f:
-            return json.load(f)
-    return {}
-
-def save_lang_settings(data):
-    with open(LANG_FILE, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-# ==== Discord Bot設定 ====
 flag_map = {
     "🇧🇬": "BG", "🇨🇳": "ZH", "🇨🇿": "CS", "🇩🇰": "DA", "🇳🇱": "NL", "🇺🇸": "EN", "🇬🇧": "EN",
     "🇪🇪": "ET", "🇫🇮": "FI", "🇫🇷": "FR", "🇩🇪": "DE", "🇬🇷": "EL", "🇭🇺": "HU", "🇮🇩": "ID",
@@ -111,16 +28,12 @@ flag_map = {
     "🇧🇷": "PT", "🇷🇴": "RO", "🇷🇺": "RU", "🇸🇰": "SK", "🇸🇮": "SL", "🇪🇸": "ES"
 }
 
-from discord.ext import commands  # ← 上の方にない場合は追加
-
 intents = discord.Intents.default()
 intents.message_content = True
 intents.reactions = True
 
 bot = commands.Bot(command_prefix="!", intents=intents)
 
-
-# タイムゾーンの簡潔な選択肢
 TIMEZONE_CHOICES = [
     discord.app_commands.Choice(name="JST", value="Asia/Tokyo"),
     discord.app_commands.Choice(name="UTC", value="UTC"),
@@ -140,16 +53,13 @@ TIMEZONE_CHOICES = [
     discord.app_commands.Choice(name="KST", value="Asia/Seoul"),
     discord.app_commands.Choice(name="AEST", value="Australia/Sydney"),
     discord.app_commands.Choice(name="NZDT", value="Pacific/Auckland"),
-     # ここからUTC-3関連タイムゾーン追加
     discord.app_commands.Choice(name="BRT (Brazil)", value="America/Sao_Paulo"),
     discord.app_commands.Choice(name="ART (Argentina)", value="America/Argentina/Buenos_Aires"),
     discord.app_commands.Choice(name="Uruguay", value="America/Montevideo"),
     discord.app_commands.Choice(name="Suriname", value="America/Paramaribo"),
     discord.app_commands.Choice(name="Falkland Islands", value="Atlantic/Stanley"),
-    
 ]
 
-# 言語選択肢の定義
 LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, code in [
     ("Bulgarian", "BG"), ("Chinese", "ZH"), ("Czech", "CS"), ("Danish", "DA"),
     ("Dutch", "NL"), ("English", "EN"), ("Estonian", "ET"), ("Finnish", "FI"),
@@ -160,13 +70,160 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
     ("Spanish", "ES")
 ]]
 
+Thread(target=start_flask, daemon=True).start()
+
+DATA_DIR = "data"
+EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
+
+def load_events(guild_id=None):
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+
+    if not os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+        return []
+
+    try:
+        with open(EVENTS_FILE, "r", encoding="utf-8") as f:
+            events = json.load(f)
+            if guild_id is not None:
+                events = [e for e in events if e.get("guild_id") == guild_id]
+            return events
+    except Exception as e:
+        print(f"Failed to load events: {e}")
+        return []
+
+
+def save_events(events, guild_id=None):
+    try:
+        if guild_id is not None:
+            all_events = load_events()  # 全イベント読み込み
+            other_events = [e for e in all_events if e.get("guild_id") != guild_id]
+            events = other_events + events
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump(events, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Failed to save events: {e}")
+
+import pytz
+from datetime import datetime
+
+def add_event(month, day, hour, minute, name, content, channel_id, guild_id, reminders=None, timezone="JST"):
+    print("🟢 add_event 開始")
+
+    if reminders is None:
+        reminders = [30, 20, 10]
+
+    if timezone == "JST":
+        tz = pytz.timezone("Asia/Tokyo")
+    elif timezone == "UTC":
+        tz = pytz.UTC
+    else:
+        tz = pytz.UTC
+
+    now = datetime.now(tz)
+    event_datetime = tz.localize(datetime(now.year, month, day, hour, minute))
+    if event_datetime < now:
+        event_datetime = event_datetime.replace(year=now.year + 1)
+
+    event_datetime_utc = event_datetime.astimezone(pytz.UTC)
+
+    event = {
+        "datetime": event_datetime_utc.isoformat(),
+        "name": name,
+        "content": content,
+        "channel_id": channel_id,
+        "guild_id": guild_id,
+        "announced": False,
+        "reminders": reminders,
+        "reminded": [False] * len(reminders)
+    }
+
+    print("🟡 load_events 呼び出し")
+    events = load_events(guild_id=guild_id)
+    print("🟢 load_events 完了")
+
+    events.append(event)
+
+    print("🟡 save_events 呼び出し")
+    save_events(events, guild_id=guild_id)
+    print("🟢 save_events 完了")
+
+
+
+
+async def event_checker(bot):
+    await bot.wait_until_ready()
+    while not bot.is_closed():
+        now = datetime.now(tz=pytz.UTC)  # UTC
+        events = load_events()
+        remaining_events = []
+
+        for event in events:
+            event_time = datetime.fromisoformat(event["datetime"])
+            channel = bot.get_channel(event["channel_id"])
+            if not channel:
+                print(f"Channel with ID {event['channel_id']} not found.")
+                remaining_events.append(event)
+                continue
+
+            # リマインダー通知処理
+            for i, minutes_before in enumerate(event.get("reminders", [])):
+                reminder_time = event_time - timedelta(minutes=minutes_before)
+                # 通知対象時間の1分間の猶予でチェック
+                if reminder_time <= now < reminder_time + timedelta(seconds=60):
+                    if not event["reminded"][i]:
+                        unix_timestamp = int(event_time.timestamp())
+                        msg = (
+                            f"⏰ イベント『{event['name']}』まであと{minutes_before}分です！\n"
+                            f"{event['content']}\n"
+                            f"日時: <t:{unix_timestamp}:F>"
+                        )
+                        try:
+                            await channel.send(msg)
+                            event["reminded"][i] = True  # 通知済みフラグON
+                        except Exception as e:
+                            print(f"Failed to send reminder: {e}")
+
+            # イベント本番通知
+            if now >= event_time:
+                if not event["announced"]:
+                    unix_timestamp = int(event_time.timestamp())
+                    msg = (
+                        f"📢 **イベント開始！** 📢\n"
+                        f"**{event['name']}**\n"
+                        f"{event['content']}\n"
+                        f"日時: <t:{unix_timestamp}:F>"
+                    )
+                    try:
+                        await channel.send(msg)
+                        event["announced"] = True
+                    except Exception as e:
+                        print(f"Failed to send event message: {e}")
+                # イベント完了なのでリストから除外
+                continue
+            else:
+                remaining_events.append(event)
+
+        save_events(remaining_events)
+        await asyncio.sleep(60)
+
+
+def ensure_data_files():
+    if not os.path.exists(DATA_DIR):
+        os.makedirs(DATA_DIR)
+    if not os.path.exists(EVENTS_FILE):
+        with open(EVENTS_FILE, "w", encoding="utf-8") as f:
+            json.dump([], f, ensure_ascii=False, indent=2)
+
 @bot.event
 async def on_ready():
-    await bot.tree.sync()  # スラッシュコマンドを同期するための行
+    ensure_data_files()          # ここで初期化処理を呼ぶ
+    await bot.tree.sync()
     print(f"✅ Logged in as {bot.user}")
 
 
-# 言語設定コマンド
 @bot.tree.command(name="setlang", description="あなたの母国語を設定します")
 @app_commands.choices(lang=LANG_CHOICES)
 async def setlang(interaction: discord.Interaction, lang: discord.app_commands.Choice[str]):
@@ -176,9 +233,8 @@ async def setlang(interaction: discord.Interaction, lang: discord.app_commands.C
     save_lang_settings(data)
     await interaction.response.send_message(f"✅ あなたの母国語を {lang.name} に設定しました！", ephemeral=True)
 
-# タイムスタンプ作成コマンド
 @bot.tree.command(name="create_timestamp", description="指定した日付と時刻をタイムゾーン付きで表示します")
-@app_commands.choices(timezone=TIMEZONE_CHOICES)  # ← これを追加！
+@app_commands.choices(timezone=TIMEZONE_CHOICES)
 async def create_timestamp(
     interaction: discord.Interaction,
     month: int,
@@ -196,7 +252,203 @@ async def create_timestamp(
     await interaction.response.send_message(embed=embed)
 
 
+@bot.tree.command(name="addevent", description="イベントを登録します")
+@app_commands.describe(
+    month="month（1〜12）",
+    day="day（1〜31）",
+    hour="hour（0〜23）",
+    minute="min（0〜59）",
+    name="event_name",
+    content="event",
+    channel="channel",
+    reminders="通知する分前（カンマ区切り、例: 30,20,10）",
+    timezone="タイムゾーンを選択してください"
+)
+@app_commands.choices(
+    timezone=[
+        app_commands.Choice(name="日本時間 (JST)", value="JST"),
+        app_commands.Choice(name="協定世界時 (UTC)", value="UTC"),
+    ]
+)
+async def addevent(
+    interaction: discord.Interaction,
+    month: int,
+    day: int,
+    hour: int,
+    minute: int,
+    name: str,
+    content: str,
+    channel: TextChannel,
+    reminders: str = None,
+    timezone: str = "JST"
+):
+    print("🟢 /addevent 実行開始")
+
+    # defer
+    await interaction.response.defer(ephemeral=True)
+
+    # reminders parse
+    reminder_list = []
+    if reminders:
+        try:
+            reminder_list = [int(x.strip()) for x in reminders.split(",")]
+        except ValueError:
+            await interaction.followup.send(
+                "リマインダーはカンマ区切りの数字で指定してください。",
+                ephemeral=True
+            )
+            return
+
+    try:
+        add_event(
+            month, day, hour, minute, name, content, channel.id,
+            interaction.guild_id, reminder_list,
+            timezone=timezone
+        )
+
+        if timezone.upper() == "UTC":
+            tz = pytz.UTC
+        else:
+            tz = pytz.timezone("Asia/Tokyo")
+
+        now = datetime.now(tz)
+        year = now.year
+        event_datetime = tz.localize(datetime(year, month, day, hour, minute))
+
+        event_data = {
+            "name": name,
+            "content": content,
+            "channel_id": channel.id,
+            "guild_id": interaction.guild_id,
+            "author": interaction.user.name,
+            "reminders": reminder_list,
+            "timezone": timezone,
+            "timestamp": datetime.now(tz).isoformat(),
+            "datetime": event_datetime.isoformat(),
+            "event_time": f"{month:02}-{day:02} {hour:02}:{minute:02}"
+        }
+
+
+
+    except Exception as e:
+        print(f"🔴 add_event 例外: {e}")
+        await interaction.followup.send(
+            f"❌ イベント登録に失敗しました: {e}",
+            ephemeral=True
+        )
+        return
+
+    reminder_text = ""
+    if reminder_list:
+        reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminder_list) + " にお知らせします。"
+
+    await interaction.followup.send(
+        f"✅ イベント「{name}」を登録しました！\n{reminder_text}\nタイムゾーン: {timezone}",
+        ephemeral=True
+    )
+    print("✅ /addevent 完了")
+
+
+
+@bot.tree.command(name="deleteevent", description="指定したイベントを削除します")
+@app_commands.describe(index="削除するイベントの番号（/listevents で確認）")
+async def deleteevent(interaction: discord.Interaction, index: int):
+    events = load_events()
+    if not events:
+        await interaction.response.send_message("登録されているイベントはありません。", ephemeral=True)
+        return
+
+    if index < 1 or index > len(events):
+        await interaction.response.send_message("無効なイベント番号です。", ephemeral=True)
+        return
+
+    removed_event = events.pop(index - 1)
+    save_events(events)
+    await interaction.response.send_message(
+        f"✅ イベント「{removed_event.get('name', '無名イベント')}」を削除しました。", ephemeral=True
+    )
+
+
+
+from datetime import datetime
+import pytz
+import discord
+from discord import app_commands
+from discord.ext import commands
+
+@bot.tree.command(name="listevents", description="登録済みイベントの一覧を表示します")
+async def listevents(interaction: discord.Interaction):
+    try:
+        await interaction.response.defer(ephemeral=True)
+    except discord.NotFound:
+        # Interactionが古くて無効な場合
+        return
+
+    guild = interaction.guild
+    guild_id = guild.id
+    events = load_events(guild_id=guild_id)
+
+    if not events:
+        await interaction.followup.send("登録されているイベントはありません。", ephemeral=True)
+        return
+
+    embed = discord.Embed(
+        title=f"登録イベント一覧 - サーバー: {guild.name}",
+        color=discord.Color.green()
+    )
+
+    timezone_jst = pytz.timezone("Asia/Tokyo")
+    timezone_utc = pytz.UTC
+
+    for i, event in enumerate(events, 1):
+        # 日時情報が存在しないイベントはスキップ
+        datetime_str = event.get("datetime")
+        if not datetime_str:
+            continue
+
+        try:
+            dt = datetime.fromisoformat(datetime_str)
+        except Exception as e:
+            continue  # パースできない日時はスキップ
+
+        timezone = event.get("timezone", "JST")
+        if timezone == "UTC":
+            dt = dt.replace(tzinfo=timezone_utc)
+        else:
+            dt = dt.replace(tzinfo=timezone_utc).astimezone(timezone_jst)
+
+        unix_timestamp = int(dt.timestamp())
+        timestamp_str = f"<t:{unix_timestamp}:F>"
+
+        name = event.get("name", "無名イベント")
+        content = event.get("content", "")
+        channel_id = event.get("channel_id", 0)
+        channel = interaction.guild.get_channel(channel_id)
+        channel_name = channel.name if channel else f"不明なチャンネル（ID: {channel_id}）"
+
+        reminders = event.get("reminders", [])
+        if reminders:
+            reminder_text = "この通知は " + "、".join(f"{m}分前" for m in reminders) + " にお知らせします。"
+        else:
+            reminder_text = "リマインダー設定なし"
+
+        embed.add_field(
+            name=f"{i}. {name} - {timestamp_str}（{timezone}）",
+            value=(
+                f"📢 内容: {content}\n"
+                f"📡 チャンネル: {channel_name}\n"
+                f"🌍 タイムゾーン: {timezone}\n"
+                f"⏰ {reminder_text}"
+            ),
+            inline=False,
+        )
+
+    await interaction.followup.send(embed=embed, ephemeral=True)
+
+
 # DM翻訳（通常テキスト）
+import aiohttp
+
 @bot.event
 async def on_message(message):
     if message.author.bot or not isinstance(message.channel, discord.DMChannel):
@@ -207,22 +459,44 @@ async def on_message(message):
     native_lang = settings.get(user_id, "JA")
     other_lang = "EN" if native_lang != "EN" else "JA"
 
-    res = requests.post(DEEPL_API_URL, data={
+    url = "https://api-free.deepl.com/v2/translate"
+    params = {
         "auth_key": DEEPL_API_KEY,
         "text": message.content,
-        "target_lang": "EN"
-    })
-    if res.status_code != 200:
-        await message.channel.send("[翻訳エラー]")
-        return
+        "target_lang": "EN",  # とりあえずEN固定（あとで言語検出から切り替えも可）
+    }
 
-    detected = res.json()["translations"][0]["detected_source_language"]
+    async with aiohttp.ClientSession() as session:
+        async with session.post(url, data=params) as resp:
+            if resp.status != 200:
+                await message.channel.send("[翻訳エラー]")
+                return
+            data = await resp.json()
+
+    detected = data["translations"][0]["detected_source_language"]
     target = other_lang if detected == native_lang else native_lang
-    translated = translate(message.content, target)
+
+    # 再度翻訳（目的の言語に）
+    if target != detected:
+        params["target_lang"] = target
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, data=params) as resp:
+                if resp.status != 200:
+                    await message.channel.send("[翻訳エラー]")
+                    return
+                data = await resp.json()
+        translated = data["translations"][0]["text"]
+    else:
+        translated = message.content  # もし検出言語＝ターゲットなら翻訳不要
 
     await message.channel.send(translated)
 
-# リアクション翻訳（埋め込みメッセージ）
+    await bot.process_commands(message)  # 忘れずに
+
+
+
+
+
 @bot.event
 async def on_raw_reaction_add(payload):
     if payload.user_id == bot.user.id or str(payload.emoji) not in flag_map:
@@ -235,17 +509,30 @@ async def on_raw_reaction_add(payload):
     try:
         message = await channel.fetch_message(payload.message_id)
         user = await bot.fetch_user(payload.user_id)
-        translated = translate(message.content, flag_map[str(payload.emoji)])
+        translated = await translate(message.content, flag_map[str(payload.emoji)])
 
-        embed = discord.Embed(description=translated, color=discord.Color.teal())
-        embed.set_footer(text=f"{user.display_name}")
-        reply = await message.reply(embed=embed)
+        embed = discord.Embed(
+            description=translated,
+            color=discord.Color.teal()
+        )
+        embed.set_author(
+            name=user.display_name,
+            icon_url=user.avatar.url if user.avatar else None
+        )
+
+        msg = await channel.send(embed=embed)  # 送信メッセージを保存
 
         await message.remove_reaction(payload.emoji, user)
         await asyncio.sleep(60)
-        await reply.delete()
+
+        await msg.delete()  # 60秒後に翻訳メッセージ削除
+
     except Exception as e:
         print(f"リアクション翻訳エラー: {e}")
 
-# Bot起動
+
+@bot.event
+async def on_connect():
+    bot.loop.create_task(event_checker(bot))
+
 bot.run(DISCORD_TOKEN)
