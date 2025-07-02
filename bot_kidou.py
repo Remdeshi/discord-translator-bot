@@ -66,7 +66,7 @@ LANG_CHOICES = [discord.app_commands.Choice(name=name, value=code) for name, cod
     ("Dutch", "NL"), ("English", "EN"), ("Estonian", "ET"), ("Finnish", "FI"),
     ("French", "FR"), ("German", "DE"), ("Greek", "EL"), ("Hungarian", "HU"),
     ("Indonesian", "ID"), ("Italian", "IT"), ("Japanese", "JA"), ("Korean", "KO"),
-    ("Latvian", "LV"), ("Lithuanian", "LT"), ("Polish", "PL"), ("Portuguese", "PT"),
+    ("Lithuanian", "LT"), ("Polish", "PL"), ("Portuguese", "PT"),
     ("Romanian", "RO"), ("Russian", "RU"), ("Slovak", "SK"), ("Slovenian", "SL"),
     ("Spanish", "ES"),("Turkish", "TR")
 ]]
