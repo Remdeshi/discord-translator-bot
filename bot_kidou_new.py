@@ -41,11 +41,11 @@ def ensure_data_files():
 
     if not os.path.exists(config.EVENTS_FILE):
         with open(config.EVENTS_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+            json.dump({}, f, ensure_ascii=False, indent=2)
 
     if not os.path.exists(config.USER_LANG_FILE):
         with open(config.USER_LANG_FILE, "w", encoding="utf-8") as f:
-            json.dump([], f, ensure_ascii=False, indent=2)
+            json.dump({}, f, ensure_ascii=False, indent=2)
 
     return
 
